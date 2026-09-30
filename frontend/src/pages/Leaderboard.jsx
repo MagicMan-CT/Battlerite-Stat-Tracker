@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "@/api";
 import { Trophy, TrendingUp, Download } from "lucide-react";
+import StreakBadge from "@/components/StreakBadge";
 
 const tier = (mmr) => {
   if (mmr >= 1600) return { name: "Grandmaster", color: "text-[#FF2E55]", border: "border-[#FF2E55]" };
@@ -74,7 +75,7 @@ export default function Leaderboard() {
                 return (
                   <tr key={r.player_id} className="border-b border-[#1B2438]/60 hover:bg-[#121828]/60 transition-colors" data-testid={`leaderboard-row-${r.player_id}`}>
                     <td className="px-4 py-3 font-mono-hud font-black text-[#FFB800]">#{r.rank}</td>
-                    <td className="px-4 py-3"><Link to={`/players/${r.player_id}`} className="hover:text-cyan-400 font-medium">{r.name}</Link></td>
+                    <td className="px-4 py-3"><div className="flex items-center gap-2"><Link to={`/players/${r.player_id}`} className="hover:text-cyan-400 font-medium">{r.name}</Link><StreakBadge streak={r.streak} /></div></td>
                     <td className="px-4 py-3"><span className={`text-[10px] font-mono-hud uppercase tracking-wider px-2 py-1 border rounded ${t.color} ${t.border}`}>{t.name}</span></td>
                     <td className="px-4 py-3 text-right font-mono-hud font-bold text-cyan-400">{Math.round(r.mmr)}</td>
                     <td className="px-4 py-3 text-right font-mono-hud text-slate-400 hidden md:table-cell">{Math.round(r.peak_mmr)}</td>

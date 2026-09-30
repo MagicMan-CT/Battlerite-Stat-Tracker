@@ -4,6 +4,7 @@ import api from "@/api";
 import { Trophy, Swords, Flame, Users, TrendingUp } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import ChampionPortrait from "@/components/ChampionPortrait";
+import StreakBadge from "@/components/StreakBadge";
 
 const roleClass = (r) => r === "Melee" ? "role-bg-melee" : r === "Ranged" ? "role-bg-ranged" : "role-bg-support";
 
@@ -33,7 +34,7 @@ export default function PlayerProfile() {
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <div className="text-xs font-mono-hud uppercase tracking-[0.3em] text-cyan-400/70 mb-2">// Player Dossier</div>
-          <h1 className="font-heading text-4xl sm:text-5xl font-black uppercase tracking-tight">{stats.player.name}</h1>
+          <h1 className="font-heading text-4xl sm:text-5xl font-black uppercase tracking-tight flex items-center gap-3">{stats.player.name}<StreakBadge streak={stats.streak} size="lg" /></h1>
         </div>
         <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="bg-[#121828] border border-[#1B2438] rounded px-3 py-2 text-sm" data-testid="profile-season">
           <option value="">All seasons</option>

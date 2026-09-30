@@ -237,9 +237,41 @@ async def list_champions():
     return sorted(docs, key=lambda x: (x["role"], x["name"]))
 
 
+import re
+
+async def check_and_close_expired_seasons():
+    """Auto-close active seasons whose end_date has passed. Spawn next season."""
+    now = datetime.now(timezone.utc)
+    active = await db.seasons.find({"active": True, "end_date": {"$ne": None}}).to_list(100)
+    for s in active:
+        try:
+            end = datetime.fromisoformat(s["end_date"])
+        except Exception:
+            continue
+        if end.tzinfo is None:
+            end = end.replace(tzinfo=timezone.utc)
+        if end <= now:
+            await db.seasons.update_one({"id": s["id"]}, {"$set": {
+                "active": False, "closed_at": now.isoformat(),
+            }})
+            # Determine next season number from existing names
+            all_names = [x["name"] for x in await db.seasons.find({}, {"_id": 0}).to_list(1000)]
+            nums = [int(m.group(1)) for n in all_names for m in [re.match(r"^\s*Season\s+(\d+)", n or "", re.IGNORECASE)] if m]
+            next_num = (max(nums) if nums else 0) + 1
+            await db.seasons.insert_one({
+                "id": str(uuid.uuid4()),
+                "name": f"Season {next_num}",
+                "active": True,
+                "end_date": None,
+                "created_at": now.isoformat(),
+                "auto_created_from": s["id"],
+            })
+
+
 # --------- Seasons ---------
 @api_router.get("/seasons")
 async def list_seasons():
+    await check_and_close_expired_seasons()
     docs = await db.seasons.find({}, {"_id": 0}).sort("created_at", -1).to_list(1000)
     return docs
 
@@ -356,6 +388,7 @@ async def _team_mmr(player_ids: List[str], season_id: str) -> float:
 
 @api_router.post("/matches")
 async def create_match(data: MatchCreate, user: dict = Depends(get_current_user)):
+    await check_and_close_expired_seasons()
     # Validate
     team_a = [p for p in data.players if p.team == "A"]
     team_b = [p for p in data.players if p.team == "B"]
@@ -480,8 +513,11 @@ async def leaderboard(season_id: Optional[str] = None):
             "mmr": BASE_MMR, "peak_mmr": BASE_MMR,
             "matches": 0, "wins": 0, "losses": 0,
             "rounds_won": 0, "rounds_lost": 0,
+            "streak": 0,  # >0 = win streak, <0 = loss streak (current)
+            "_recent": [],  # list of bools newest first for streak calc
         }
 
+    # matches are in chronological order (played_at asc)
     for m in matches:
         for mp in m["players"]:
             if mp["player_id"] not in stats:
@@ -503,9 +539,22 @@ async def leaderboard(season_id: Optional[str] = None):
             else:
                 s["rounds_won"] += m["team_b_rounds"]
                 s["rounds_lost"] += m["team_a_rounds"]
+            s["_recent"].append(won)
 
     result = []
     for s in stats.values():
+        # Compute current streak from most recent backwards
+        streak = 0
+        recent = list(reversed(s["_recent"]))
+        if recent:
+            first = recent[0]
+            for r in recent:
+                if r == first:
+                    streak += 1
+                else:
+                    break
+            s["streak"] = streak if first else -streak
+        s.pop("_recent", None)
         s["mmr"] = round(s["mmr"], 2)
         s["peak_mmr"] = round(s["peak_mmr"], 2)
         s["winrate"] = round((s["wins"] / s["matches"] * 100) if s["matches"] > 0 else 0, 1)
@@ -593,6 +642,25 @@ async def player_stats(pid: str, season_id: Optional[str] = None):
     for o in opponent_list:
         o["winrate"] = compute_rate(o)
 
+    # Compute current streak from most recent matches backwards
+    outcomes = []  # newest first
+    for m in matches:  # matches sorted DESC by played_at
+        my = next((p for p in m["players"] if p["player_id"] == pid), None)
+        if not my:
+            continue
+        won = (my["team"] == "A" and m["team_a_rounds"] > m["team_b_rounds"]) or \
+              (my["team"] == "B" and m["team_b_rounds"] > m["team_a_rounds"])
+        outcomes.append(won)
+    streak = 0
+    if outcomes:
+        first = outcomes[0]
+        for r in outcomes:
+            if r == first:
+                streak += 1
+            else:
+                break
+        streak = streak if first else -streak
+
     return {
         "player": player,
         "total_matches": total_matches,
@@ -601,6 +669,7 @@ async def player_stats(pid: str, season_id: Optional[str] = None):
         "winrate": round(total_wins / total_matches * 100, 1) if total_matches else 0,
         "mmr": round(mmr, 2),
         "peak_mmr": round(peak, 2),
+        "streak": streak,
         "champions": fav_champs,
         "roles": [
             {"role": r, "matches": role_stats[r], "wins": role_wins[r],
