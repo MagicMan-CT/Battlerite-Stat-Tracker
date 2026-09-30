@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "@/api";
 import { Grid3x3, Flame } from "lucide-react";
+import ChampionPortrait from "@/components/ChampionPortrait";
 
 const roleClass = (r) => r === "Melee" ? "role-bg-melee" : r === "Ranged" ? "role-bg-ranged" : "role-bg-support";
 
@@ -62,7 +63,7 @@ export default function ChampionMatrix() {
               {data.totals.filter((c) => c.picks >= minMatches).map((c) => (
                 <div key={c.champion} className="flex items-center justify-between p-2 bg-[#121828]/60 border border-[#1B2438] rounded" data-testid={`cm-total-${c.champion}`}>
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className={`text-[9px] font-mono-hud uppercase px-1.5 py-0.5 rounded border ${roleClass(c.role)} flex-shrink-0`}>{c.role.slice(0,3)}</span>
+                    <ChampionPortrait name={c.champion} role={c.role} size={28} />
                     <span className="font-medium text-sm truncate">{c.champion}</span>
                   </div>
                   <div className="text-right flex-shrink-0 ml-2">

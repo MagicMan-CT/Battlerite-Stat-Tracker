@@ -12,6 +12,7 @@ import PlayerProfile from "@/pages/PlayerProfile";
 import Matrix from "@/pages/Matrix";
 import ChampionMatrix from "@/pages/ChampionMatrix";
 import Matchmaking from "@/pages/Matchmaking";
+import Recap from "@/pages/Recap";
 import Seasons from "@/pages/Seasons";
 
 function Protected({ children }) {
@@ -43,6 +44,7 @@ function App() {
           <Route path="/matrix" element={<Protected><Matrix /></Protected>} />
           <Route path="/champions" element={<Protected><ChampionMatrix /></Protected>} />
           <Route path="/matchmaking" element={<Protected><Matchmaking /></Protected>} />
+          <Route path="/recap" element={<Protected><Recap /></Protected>} />
           <Route path="/seasons" element={<Protected><Seasons /></Protected>} />
         </Routes>
       </BrowserRouter>

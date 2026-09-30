@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "@/api";
 import { toast } from "sonner";
-import { Trash2, Filter, Pencil } from "lucide-react";
+import { Trash2, Filter, Pencil, Search } from "lucide-react";
 import { useAuth } from "@/AuthContext";
 import EditMatchDialog from "@/components/EditMatchDialog";
+import ChampionPortrait from "@/components/ChampionPortrait";
 
 const roleClass = (r) => r === "Melee" ? "role-bg-melee" : r === "Ranged" ? "role-bg-ranged" : "role-bg-support";
 
@@ -14,6 +15,7 @@ export default function Matches() {
   const [players, setPlayers] = useState([]);
   const [seasonFilter, setSeasonFilter] = useState("");
   const [playerFilter, setPlayerFilter] = useState("");
+  const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(null);
   const { user } = useAuth();
 
@@ -61,13 +63,24 @@ export default function Matches() {
           <option value="">All players</option>
           {players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
+        <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+          <Search className="w-4 h-4 text-cyan-400" />
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search notes or champion..."
+            className="flex-1 bg-[#121828] border border-[#1B2438] focus:border-cyan-400 focus:outline-none rounded px-3 py-2 text-sm"
+            data-testid="matches-search" />
+        </div>
       </div>
 
       {matches.length === 0 ? (
         <div className="hud-card p-12 text-center text-slate-500 font-mono-hud">No matches found.</div>
       ) : (
         <div className="space-y-3">
-          {matches.map((m) => {
+          {matches.filter((m) => {
+            if (!search.trim()) return true;
+            const q = search.trim().toLowerCase();
+            if ((m.notes || "").toLowerCase().includes(q)) return true;
+            return m.players.some((p) => p.champion.toLowerCase().includes(q));
+          }).map((m) => {
             const teamA = m.players.filter((p) => p.team === "A");
             const teamB = m.players.filter((p) => p.team === "B");
             const aWon = m.winner_team === "A";
@@ -90,10 +103,12 @@ export default function Matches() {
                   <div className={`p-3 rounded border ${aWon ? "border-[#00E676]/40 bg-[#00E676]/5" : "border-[#1B2438] bg-[#121828]/40"}`}>
                     {teamA.map((p, i) => (
                       <div key={i} className="flex items-center justify-between gap-2 py-1">
-                        <Link to={`/players/${p.player_id}`} className="text-sm font-medium hover:text-cyan-400 truncate">{playerName(p.player_id)}</Link>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ChampionPortrait name={p.champion} role={p.role} size={26} />
+                          <Link to={`/players/${p.player_id}`} className="text-sm font-medium hover:text-cyan-400 truncate">{playerName(p.player_id)}</Link>
+                        </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-xs font-mono-hud text-slate-400">{p.champion}</span>
-                          <span className={`text-[9px] font-mono-hud uppercase px-1.5 py-0.5 rounded border ${roleClass(p.role)}`}>{p.role.slice(0,3)}</span>
+                          <span className="text-xs font-mono-hud text-slate-400 hidden sm:inline">{p.champion}</span>
                           <span className={`text-[10px] font-mono-hud ${p.elo_delta >= 0 ? "text-[#00E676]" : "text-[#FF2E55]"}`}>{p.elo_delta >= 0 ? "+" : ""}{p.elo_delta}</span>
                         </div>
                       </div>
@@ -109,10 +124,12 @@ export default function Matches() {
                   <div className={`p-3 rounded border ${!aWon ? "border-[#00E676]/40 bg-[#00E676]/5" : "border-[#1B2438] bg-[#121828]/40"}`}>
                     {teamB.map((p, i) => (
                       <div key={i} className="flex items-center justify-between gap-2 py-1">
-                        <Link to={`/players/${p.player_id}`} className="text-sm font-medium hover:text-cyan-400 truncate">{playerName(p.player_id)}</Link>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <ChampionPortrait name={p.champion} role={p.role} size={26} />
+                          <Link to={`/players/${p.player_id}`} className="text-sm font-medium hover:text-cyan-400 truncate">{playerName(p.player_id)}</Link>
+                        </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="text-xs font-mono-hud text-slate-400">{p.champion}</span>
-                          <span className={`text-[9px] font-mono-hud uppercase px-1.5 py-0.5 rounded border ${roleClass(p.role)}`}>{p.role.slice(0,3)}</span>
+                          <span className="text-xs font-mono-hud text-slate-400 hidden sm:inline">{p.champion}</span>
                           <span className={`text-[10px] font-mono-hud ${p.elo_delta >= 0 ? "text-[#00E676]" : "text-[#FF2E55]"}`}>{p.elo_delta >= 0 ? "+" : ""}{p.elo_delta}</span>
                         </div>
                       </div>

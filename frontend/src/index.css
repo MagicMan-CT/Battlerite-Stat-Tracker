@@ -119,3 +119,13 @@ html, body, #root {
 ::-webkit-scrollbar-track { background: #0C101B; }
 ::-webkit-scrollbar-thumb { background: #1B2438; border-radius: 4px; }
 ::-webkit-scrollbar-thumb:hover { background: #00F0FF; }
+
+/* Print */
+@media print {
+    html, body, #root { background: #fff !important; color: #000 !important; }
+    .hud-card { background: #fff !important; border: 1px solid #000 !important; box-shadow: none !important; }
+    .print\:hidden { display: none !important; }
+    .print\:block { display: block !important; }
+    header, nav { display: none !important; }
+    a { color: #000 !important; text-decoration: none !important; }
+}

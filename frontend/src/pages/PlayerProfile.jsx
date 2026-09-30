@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import api from "@/api";
 import { Trophy, Swords, Flame, Users, TrendingUp } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
+import ChampionPortrait from "@/components/ChampionPortrait";
 
 const roleClass = (r) => r === "Melee" ? "role-bg-melee" : r === "Ranged" ? "role-bg-ranged" : "role-bg-support";
 
@@ -88,7 +89,7 @@ export default function PlayerProfile() {
               {stats.champions.slice(0, 8).map((c) => (
                 <div key={c.champion} className="flex items-center justify-between p-2 bg-[#121828]/60 border border-[#1B2438] rounded">
                   <div className="flex items-center gap-2">
-                    <span className={`text-[9px] font-mono-hud uppercase px-1.5 py-0.5 rounded border ${roleClass(c.role)}`}>{c.role.slice(0,3)}</span>
+                    <ChampionPortrait name={c.champion} role={c.role} size={28} />
                     <span className="font-medium">{c.champion}</span>
                   </div>
                   <div className="flex items-center gap-3">

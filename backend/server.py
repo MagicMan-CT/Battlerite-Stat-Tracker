@@ -684,6 +684,93 @@ async def champion_matrix(season_id: Optional[str] = None):
     }
 
 
+@api_router.get("/stats/recap")
+async def recap(days: int = 7, season_id: Optional[str] = None):
+    """Weekly recap: top climbers, biggest upsets, champion trends."""
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+    q = {"played_at": {"$gte": cutoff}}
+    if season_id:
+        q["season_id"] = season_id
+    matches = await db.matches.find(q, {"_id": 0}).sort("played_at", 1).to_list(10000)
+
+    all_players = {p["id"]: p["name"] for p in await db.players.find({}, {"_id": 0}).to_list(1000)}
+
+    # Top climbers
+    climbers = {}  # pid -> {name, delta, matches, wins}
+    for m in matches:
+        won_a = m["team_a_rounds"] > m["team_b_rounds"]
+        for p in m["players"]:
+            if p["player_id"] not in climbers:
+                climbers[p["player_id"]] = {
+                    "player_id": p["player_id"],
+                    "name": all_players.get(p["player_id"], "Unknown"),
+                    "delta": 0.0, "matches": 0, "wins": 0,
+                }
+            c = climbers[p["player_id"]]
+            c["delta"] += p.get("elo_delta", 0)
+            c["matches"] += 1
+            won = (p["team"] == "A" and won_a) or (p["team"] == "B" and not won_a)
+            if won:
+                c["wins"] += 1
+    for c in climbers.values():
+        c["delta"] = round(c["delta"], 2)
+        c["winrate"] = round(c["wins"] / c["matches"] * 100, 1) if c["matches"] else 0
+
+    climbers_list = sorted(climbers.values(), key=lambda x: -x["delta"])
+
+    # Biggest upsets: matches where team with lower mmr_before won by biggest round margin
+    upsets = []
+    for m in matches:
+        mmr_a = m.get("team_a_mmr_before", BASE_MMR)
+        mmr_b = m.get("team_b_mmr_before", BASE_MMR)
+        won_a = m["team_a_rounds"] > m["team_b_rounds"]
+        winner_mmr = mmr_a if won_a else mmr_b
+        loser_mmr = mmr_b if won_a else mmr_a
+        if winner_mmr >= loser_mmr:
+            continue
+        upset_delta = loser_mmr - winner_mmr
+        round_margin = abs(m["team_a_rounds"] - m["team_b_rounds"])
+        winner_players = [all_players.get(p["player_id"], "?") for p in m["players"] if (p["team"] == "A") == won_a]
+        loser_players = [all_players.get(p["player_id"], "?") for p in m["players"] if (p["team"] == "A") != won_a]
+        upsets.append({
+            "match_id": m["id"],
+            "played_at": m["played_at"],
+            "format": m["format"],
+            "score": f"{m['team_a_rounds']}-{m['team_b_rounds']}",
+            "winners": winner_players,
+            "losers": loser_players,
+            "mmr_gap": round(upset_delta, 2),
+            "round_margin": round_margin,
+            "upset_score": round(upset_delta + round_margin * 20, 2),
+        })
+    upsets.sort(key=lambda x: -x["upset_score"])
+
+    # Champion trends
+    champ_trend = {}
+    for m in matches:
+        won_a = m["team_a_rounds"] > m["team_b_rounds"]
+        for p in m["players"]:
+            c = p["champion"]
+            if c not in champ_trend:
+                champ_trend[c] = {"champion": c, "role": p["role"], "picks": 0, "wins": 0}
+            champ_trend[c]["picks"] += 1
+            won = (p["team"] == "A" and won_a) or (p["team"] == "B" and not won_a)
+            if won:
+                champ_trend[c]["wins"] += 1
+    for c in champ_trend.values():
+        c["winrate"] = round(c["wins"] / c["picks"] * 100, 1) if c["picks"] else 0
+
+    trending = sorted(champ_trend.values(), key=lambda x: (-x["picks"], -x["winrate"]))
+
+    return {
+        "period_days": days,
+        "total_matches": len(matches),
+        "top_climbers": climbers_list[:10],
+        "biggest_upsets": upsets[:5],
+        "champion_trends": trending[:12],
+    }
+
+
 # --------- Matchmaking ---------
 class MatchmakingRequest(BaseModel):
     player_ids: List[str]
