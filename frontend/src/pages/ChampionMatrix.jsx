@@ -58,17 +58,23 @@ export default function ChampionMatrix() {
       ) : (
         <>
           <div className="hud-card p-5">
-            <h3 className="font-heading text-lg font-bold uppercase mb-3 flex items-center gap-2"><Flame className="w-4 h-4 text-[#FFB800]" /> Champion Overall Winrates</h3>
+            <h3 className="font-heading text-lg font-bold uppercase mb-3 flex items-center gap-2"><Flame className="w-4 h-4 text-[#FFB800]" /> Champion Roster & Winrates</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-              {data.totals.filter((c) => c.picks >= minMatches).map((c) => (
-                <div key={c.champion} className="flex items-center justify-between p-2 bg-[#121828]/60 border border-[#1B2438] rounded" data-testid={`cm-total-${c.champion}`}>
+              {data.totals.map((c) => (
+                <div key={c.champion} className={`flex items-center justify-between p-2 bg-[#121828]/60 border rounded ${c.picks === 0 ? "border-[#1B2438] opacity-60" : "border-[#1B2438]"}`} data-testid={`cm-total-${c.champion}`}>
                   <div className="flex items-center gap-2 min-w-0">
                     <ChampionPortrait name={c.champion} role={c.role} size={28} />
                     <span className="font-medium text-sm truncate">{c.champion}</span>
                   </div>
                   <div className="text-right flex-shrink-0 ml-2">
-                    <div className={`font-mono-hud text-xs font-bold ${c.winrate >= 50 ? "text-[#00E676]" : "text-[#FF2E55]"}`}>{c.winrate}%</div>
-                    <div className="text-[9px] font-mono-hud text-slate-500">{c.picks}p</div>
+                    {c.picks === 0 ? (
+                      <div className="text-[9px] font-mono-hud uppercase tracking-wider text-slate-500">unplayed</div>
+                    ) : (
+                      <>
+                        <div className={`font-mono-hud text-xs font-bold ${c.winrate >= 50 ? "text-[#00E676]" : "text-[#FF2E55]"}`}>{c.winrate}%</div>
+                        <div className="text-[9px] font-mono-hud text-slate-500">{c.picks}p</div>
+                      </>
+                    )}
                   </div>
                 </div>
               ))}

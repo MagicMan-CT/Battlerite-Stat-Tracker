@@ -748,8 +748,11 @@ async def champion_matrix(season_id: Optional[str] = None):
         q["season_id"] = season_id
     matches = await db.matches.find(q, {"_id": 0}).to_list(10000)
 
-    champions_used = set()
-    # champ_a -> champ_b -> {matches, wins_for_a}
+    # Start from the full roster so unplayed champions still appear
+    roster = await db.champions.find({}, {"_id": 0}).to_list(1000)
+    role_by_name = {c["name"]: c["role"] for c in roster}
+    champions_used = set(role_by_name.keys())
+
     m = {}
     for match in matches:
         team_a = [p for p in match["players"] if p["team"] == "A"]
@@ -768,14 +771,13 @@ async def champion_matrix(season_id: Optional[str] = None):
                 if not a_won:
                     m[cb][ca]["wins"] += 1
 
-    # Champion pick/win totals
-    totals = {}
+    # Champion pick/win totals — seed with full roster so 0-pick champs are listed
+    totals = {c["name"]: {"champion": c["name"], "role": c["role"], "picks": 0, "wins": 0} for c in roster}
     for match in matches:
         a_won = match["team_a_rounds"] > match["team_b_rounds"]
         for p in match["players"]:
             c = p["champion"]
-            champions_used.add(c)
-            totals.setdefault(c, {"champion": c, "role": p["role"], "picks": 0, "wins": 0})
+            totals.setdefault(c, {"champion": c, "role": role_by_name.get(c, p["role"]), "picks": 0, "wins": 0})
             totals[c]["picks"] += 1
             won = (p["team"] == "A" and a_won) or (p["team"] == "B" and not a_won)
             if won:
@@ -787,7 +789,7 @@ async def champion_matrix(season_id: Optional[str] = None):
     return {
         "champions": sorted(list(champions_used)),
         "matrix": m,
-        "totals": sorted(totals.values(), key=lambda x: -x["picks"]),
+        "totals": sorted(totals.values(), key=lambda x: (-x["picks"], x["champion"])),
     }
 
 
