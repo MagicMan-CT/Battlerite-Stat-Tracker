@@ -1,6 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/AuthContext";
-import { Swords, Trophy, Users, Grid3x3, Sliders, Calendar, LayoutDashboard, PlusCircle, LogOut } from "lucide-react";
+import { Swords, Trophy, Users, Grid3x3, Sliders, Calendar, LayoutDashboard, PlusCircle, LogOut, Flame } from "lucide-react";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, testid: "nav-dashboard" },
@@ -9,6 +9,7 @@ const links = [
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy, testid: "nav-leaderboard" },
   { to: "/players", label: "Players", icon: Users, testid: "nav-players" },
   { to: "/matrix", label: "PvP Matrix", icon: Grid3x3, testid: "nav-matrix" },
+  { to: "/champions", label: "Champions", icon: Flame, testid: "nav-champions" },
   { to: "/matchmaking", label: "Matchmaking", icon: Sliders, testid: "nav-matchmaking" },
   { to: "/seasons", label: "Seasons", icon: Calendar, testid: "nav-seasons" },
 ];

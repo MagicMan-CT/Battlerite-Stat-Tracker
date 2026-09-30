@@ -291,6 +291,31 @@ async def delete_player(pid: str, user: dict = Depends(get_current_user)):
 
 
 # --------- Matches ---------
+async def recompute_season_elo(season_id: str):
+    """Recompute elo_delta for every match in a season in chronological order."""
+    matches = await db.matches.find({"season_id": season_id}).sort("played_at", 1).to_list(10000)
+    player_mmr = {}
+    for m in matches:
+        team_a = [p for p in m["players"] if p["team"] == "A"]
+        team_b = [p for p in m["players"] if p["team"] == "B"]
+        if not team_a or not team_b:
+            continue
+        ta_mmr = sum(player_mmr.get(p["player_id"], BASE_MMR) for p in team_a) / len(team_a)
+        tb_mmr = sum(player_mmr.get(p["player_id"], BASE_MMR) for p in team_b) / len(team_b)
+        delta_a = compute_elo_delta(ta_mmr, tb_mmr, m["team_a_rounds"], m["team_b_rounds"])
+        new_players = []
+        for p in m["players"]:
+            d = delta_a if p["team"] == "A" else -delta_a
+            new_players.append({**p, "elo_delta": round(d, 2)})
+            player_mmr[p["player_id"]] = player_mmr.get(p["player_id"], BASE_MMR) + d
+        await db.matches.update_one({"id": m["id"]}, {"$set": {
+            "players": new_players,
+            "team_a_mmr_before": round(ta_mmr, 2),
+            "team_b_mmr_before": round(tb_mmr, 2),
+            "winner_team": "A" if m["team_a_rounds"] > m["team_b_rounds"] else "B",
+        }})
+
+
 async def get_player_mmr(player_id: str, season_id: str) -> float:
     """Compute current MMR for a player in a season based on matches."""
     matches = await db.matches.find({"season_id": season_id}).sort("played_at", 1).to_list(10000)
@@ -376,9 +401,46 @@ async def list_matches(season_id: Optional[str] = None, player_id: Optional[str]
     return docs
 
 
+@api_router.put("/matches/{mid}")
+async def update_match(mid: str, data: MatchCreate, user: dict = Depends(get_current_user)):
+    existing = await db.matches.find_one({"id": mid})
+    if not existing:
+        raise HTTPException(404, "Match not found")
+    team_a = [p for p in data.players if p.team == "A"]
+    team_b = [p for p in data.players if p.team == "B"]
+    expected = {"1v1": 1, "2v2": 2, "3v3": 3}[data.format]
+    if len(team_a) != expected or len(team_b) != expected:
+        raise HTTPException(400, f"Expected {expected} players per team for {data.format}")
+    if data.team_a_rounds == data.team_b_rounds:
+        raise HTTPException(400, "Rounds cannot be tied")
+
+    await db.matches.update_one({"id": mid}, {"$set": {
+        "season_id": data.season_id,
+        "format": data.format,
+        "team_a_rounds": data.team_a_rounds,
+        "team_b_rounds": data.team_b_rounds,
+        "notes": data.notes or "",
+        "players": [{
+            "player_id": p.player_id, "champion": p.champion,
+            "role": p.role, "team": p.team, "elo_delta": 0,
+        } for p in data.players],
+    }})
+    # Recompute affected season(s)
+    await recompute_season_elo(data.season_id)
+    if existing["season_id"] != data.season_id:
+        await recompute_season_elo(existing["season_id"])
+    updated = await db.matches.find_one({"id": mid}, {"_id": 0})
+    return updated
+
+
 @api_router.delete("/matches/{mid}")
 async def delete_match(mid: str, user: dict = Depends(get_current_user)):
+    existing = await db.matches.find_one({"id": mid})
+    if not existing:
+        return {"ok": True}
+    season_id = existing["season_id"]
     await db.matches.delete_one({"id": mid})
+    await recompute_season_elo(season_id)
     return {"ok": True}
 
 
@@ -569,6 +631,57 @@ async def matrix(season_id: Optional[str] = None):
                         m[bid][aid]["wins"] += 1
 
     return {"players": players, "matrix": m}
+
+
+@api_router.get("/stats/champion-matrix")
+async def champion_matrix(season_id: Optional[str] = None):
+    """Champion vs Champion winrate when facing each other across teams."""
+    q = {}
+    if season_id:
+        q["season_id"] = season_id
+    matches = await db.matches.find(q, {"_id": 0}).to_list(10000)
+
+    champions_used = set()
+    # champ_a -> champ_b -> {matches, wins_for_a}
+    m = {}
+    for match in matches:
+        team_a = [p for p in match["players"] if p["team"] == "A"]
+        team_b = [p for p in match["players"] if p["team"] == "B"]
+        a_won = match["team_a_rounds"] > match["team_b_rounds"]
+        for pa in team_a:
+            for pb in team_b:
+                ca, cb = pa["champion"], pb["champion"]
+                champions_used.add(ca); champions_used.add(cb)
+                m.setdefault(ca, {}).setdefault(cb, {"matches": 0, "wins": 0})
+                m[ca][cb]["matches"] += 1
+                if a_won:
+                    m[ca][cb]["wins"] += 1
+                m.setdefault(cb, {}).setdefault(ca, {"matches": 0, "wins": 0})
+                m[cb][ca]["matches"] += 1
+                if not a_won:
+                    m[cb][ca]["wins"] += 1
+
+    # Champion pick/win totals
+    totals = {}
+    for match in matches:
+        a_won = match["team_a_rounds"] > match["team_b_rounds"]
+        for p in match["players"]:
+            c = p["champion"]
+            champions_used.add(c)
+            totals.setdefault(c, {"champion": c, "role": p["role"], "picks": 0, "wins": 0})
+            totals[c]["picks"] += 1
+            won = (p["team"] == "A" and a_won) or (p["team"] == "B" and not a_won)
+            if won:
+                totals[c]["wins"] += 1
+
+    for c in totals.values():
+        c["winrate"] = round(c["wins"] / c["picks"] * 100, 1) if c["picks"] else 0
+
+    return {
+        "champions": sorted(list(champions_used)),
+        "matrix": m,
+        "totals": sorted(totals.values(), key=lambda x: -x["picks"]),
+    }
 
 
 # --------- Matchmaking ---------

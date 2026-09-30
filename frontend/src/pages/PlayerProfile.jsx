@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import api from "@/api";
-import { Trophy, Swords, Flame, Users } from "lucide-react";
+import { Trophy, Swords, Flame, Users, TrendingUp } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
 const roleClass = (r) => r === "Melee" ? "role-bg-melee" : r === "Ranged" ? "role-bg-ranged" : "role-bg-support";
 
@@ -58,6 +59,25 @@ export default function PlayerProfile() {
           <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-slate-400 mb-2">Fav Champion</div>
           <div className="font-heading text-xl font-black text-[#FFB800] truncate">{stats.champions[0]?.champion || "—"}</div>
         </div>
+      </div>
+
+      <div className="hud-card p-5">
+        <h3 className="font-heading text-lg font-bold uppercase mb-4 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-cyan-400" /> MMR Trajectory</h3>
+        {stats.mmr_history.length === 0 ? (
+          <div className="text-slate-500 text-sm font-mono-hud">No history yet.</div>
+        ) : (
+          <div className="h-56" data-testid="mmr-chart">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={stats.mmr_history.map((h, i) => ({ idx: i + 1, mmr: h.mmr }))} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1B2438" />
+                <XAxis dataKey="idx" stroke="#64748B" fontSize={10} tickLine={false} axisLine={{ stroke: "#1B2438" }} />
+                <YAxis stroke="#64748B" fontSize={10} tickLine={false} axisLine={{ stroke: "#1B2438" }} domain={["dataMin - 20", "dataMax + 20"]} />
+                <Tooltip contentStyle={{ background: "#0C101B", border: "1px solid #1B2438", fontFamily: "JetBrains Mono", fontSize: 12 }} labelStyle={{ color: "#00F0FF" }} formatter={(v) => [Math.round(v), "MMR"]} labelFormatter={(l) => `Match #${l}`} />
+                <Line type="monotone" dataKey="mmr" stroke="#00F0FF" strokeWidth={2} dot={{ fill: "#00F0FF", r: 3 }} activeDot={{ r: 5, fill: "#FFB800" }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

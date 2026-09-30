@@ -10,6 +10,7 @@ import Leaderboard from "@/pages/Leaderboard";
 import Players from "@/pages/Players";
 import PlayerProfile from "@/pages/PlayerProfile";
 import Matrix from "@/pages/Matrix";
+import ChampionMatrix from "@/pages/ChampionMatrix";
 import Matchmaking from "@/pages/Matchmaking";
 import Seasons from "@/pages/Seasons";
 
@@ -40,6 +41,7 @@ function App() {
           <Route path="/players" element={<Protected><Players /></Protected>} />
           <Route path="/players/:id" element={<Protected><PlayerProfile /></Protected>} />
           <Route path="/matrix" element={<Protected><Matrix /></Protected>} />
+          <Route path="/champions" element={<Protected><ChampionMatrix /></Protected>} />
           <Route path="/matchmaking" element={<Protected><Matchmaking /></Protected>} />
           <Route path="/seasons" element={<Protected><Seasons /></Protected>} />
         </Routes>

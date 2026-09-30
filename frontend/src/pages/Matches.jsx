@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "@/api";
 import { toast } from "sonner";
-import { Trash2, Filter } from "lucide-react";
+import { Trash2, Filter, Pencil } from "lucide-react";
 import { useAuth } from "@/AuthContext";
+import EditMatchDialog from "@/components/EditMatchDialog";
 
 const roleClass = (r) => r === "Melee" ? "role-bg-melee" : r === "Ranged" ? "role-bg-ranged" : "role-bg-support";
 
@@ -13,6 +14,7 @@ export default function Matches() {
   const [players, setPlayers] = useState([]);
   const [seasonFilter, setSeasonFilter] = useState("");
   const [playerFilter, setPlayerFilter] = useState("");
+  const [editing, setEditing] = useState(null);
   const { user } = useAuth();
 
   const load = async () => {
@@ -36,9 +38,9 @@ export default function Matches() {
   const playerName = (id) => players.find((p) => p.id === id)?.name || "—";
 
   const del = async (id) => {
-    if (!confirm("Delete this match? ELO will not be recalculated for prior matches.")) return;
+    if (!confirm("Delete this match? Season ELO will be recomputed.")) return;
     await api.delete(`/matches/${id}`);
-    toast.success("Match deleted");
+    toast.success("Match deleted · ELO recomputed");
     load();
   };
 
@@ -78,7 +80,10 @@ export default function Matches() {
                     {m.notes && <span className="text-xs text-slate-400 italic">"{m.notes}"</span>}
                   </div>
                   {user && (
-                    <button onClick={() => del(m.id)} className="text-slate-500 hover:text-[#FF2E55] text-xs flex items-center gap-1" data-testid={`match-delete-${m.id}`}><Trash2 className="w-3.5 h-3.5" /></button>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setEditing(m)} className="text-slate-500 hover:text-cyan-400 text-xs flex items-center gap-1 p-1" data-testid={`match-edit-${m.id}`}><Pencil className="w-3.5 h-3.5" /></button>
+                      <button onClick={() => del(m.id)} className="text-slate-500 hover:text-[#FF2E55] text-xs flex items-center gap-1 p-1" data-testid={`match-delete-${m.id}`}><Trash2 className="w-3.5 h-3.5" /></button>
+                    </div>
                   )}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-center">
@@ -118,6 +123,9 @@ export default function Matches() {
             );
           })}
         </div>
+      )}
+      {editing && (
+        <EditMatchDialog match={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />
       )}
     </div>
   );
