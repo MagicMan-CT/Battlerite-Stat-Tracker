@@ -40,11 +40,12 @@ CHAMPIONS = [
     {"name": "Jamila", "role": "Melee"},
     {"name": "Raigon", "role": "Melee"},
     {"name": "Rook", "role": "Melee"},
+    {"name": "Ruh Kaan", "role": "Melee"},
     {"name": "Shifu", "role": "Melee"},
     {"name": "Thorn", "role": "Melee"},
-    {"name": "Ulric", "role": "Melee"},
     # Ranged
     {"name": "Alysia", "role": "Ranged"},
+    {"name": "Ashka", "role": "Ranged"},
     {"name": "Destiny", "role": "Ranged"},
     {"name": "Ezmo", "role": "Ranged"},
     {"name": "Iva", "role": "Ranged"},
@@ -56,10 +57,12 @@ CHAMPIONS = [
     # Support
     {"name": "Blossom", "role": "Support"},
     {"name": "Lucie", "role": "Support"},
+    {"name": "Oldur", "role": "Support"},
     {"name": "Pearl", "role": "Support"},
     {"name": "Pestilus", "role": "Support"},
     {"name": "Poloma", "role": "Support"},
     {"name": "Sirius", "role": "Support"},
+    {"name": "Ulric", "role": "Support"},
     {"name": "Zander", "role": "Support"},
 ]
 
@@ -188,6 +191,24 @@ async def startup():
     count = await db.champions.count_documents({})
     if count == 0:
         await db.champions.insert_many([{**c} for c in CHAMPIONS])
+    else:
+        # Sync roster: upsert every champion + fix roles on existing docs
+        for c in CHAMPIONS:
+            await db.champions.update_one({"name": c["name"]}, {"$set": c}, upsert=True)
+        # Migrate historical matches when a champion's role has changed
+        current_roles = {c["name"]: c["role"] for c in CHAMPIONS}
+        matches_cursor = db.matches.find({})
+        async for m in matches_cursor:
+            changed = False
+            new_players = []
+            for p in m["players"]:
+                target = current_roles.get(p["champion"])
+                if target and p.get("role") != target:
+                    p = {**p, "role": target}
+                    changed = True
+                new_players.append(p)
+            if changed:
+                await db.matches.update_one({"id": m["id"]}, {"$set": {"players": new_players}})
 
     # Seed default season
     if await db.seasons.count_documents({}) == 0:
