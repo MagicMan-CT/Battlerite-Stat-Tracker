@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "@/api";
 import { Trophy, Swords, Users, Activity, Flame } from "lucide-react";
+import SeasonCountdown from "@/components/SeasonCountdown";
 
 function Stat({ label, value, icon: Icon, accent = "cyan" }) {
   const color = { cyan: "text-cyan-400", amber: "text-[#FFB800]", crimson: "text-[#FF2E55]", emerald: "text-[#00E676]" }[accent];
@@ -58,6 +59,10 @@ export default function Dashboard() {
         <Stat label="Active Players" value={players.length} icon={Users} accent="emerald" />
         <Stat label="Top ELO" value={topPlayer ? Math.round(topPlayer.mmr) : "—"} icon={Trophy} accent="crimson" />
       </div>
+
+      {activeSeason?.end_date && (
+        <SeasonCountdown endDate={activeSeason.end_date} seasonName={activeSeason.name} />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="hud-card p-6 lg:col-span-7">

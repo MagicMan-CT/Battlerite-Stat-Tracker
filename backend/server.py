@@ -112,6 +112,11 @@ class LoginInput(BaseModel):
 
 class SeasonCreate(BaseModel):
     name: str
+    end_date: Optional[str] = None  # ISO date string
+
+class SeasonUpdate(BaseModel):
+    name: Optional[str] = None
+    end_date: Optional[str] = None
 
 class PlayerCreate(BaseModel):
     name: str
@@ -246,10 +251,22 @@ async def create_season(data: SeasonCreate, user: dict = Depends(get_current_use
         "id": str(uuid.uuid4()),
         "name": data.name,
         "active": True,
+        "end_date": data.end_date,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     await db.seasons.insert_one(doc)
     doc.pop("_id", None)
+    return doc
+
+@api_router.patch("/seasons/{sid}")
+async def update_season(sid: str, data: SeasonUpdate, user: dict = Depends(get_current_user)):
+    upd = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not upd:
+        raise HTTPException(400, "Nothing to update")
+    result = await db.seasons.update_one({"id": sid}, {"$set": upd})
+    if result.matched_count == 0:
+        raise HTTPException(404, "Season not found")
+    doc = await db.seasons.find_one({"id": sid}, {"_id": 0})
     return doc
 
 @api_router.post("/seasons/{sid}/activate")
@@ -859,6 +876,51 @@ async def matchmaking(data: MatchmakingRequest, user: dict = Depends(get_current
 
 # --------- Include Router ---------
 app.include_router(api_router)
+
+# --------- CSV Exports ---------
+import csv, io
+from fastapi.responses import StreamingResponse
+
+def _csv_response(rows: list, headers: list, filename: str):
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(headers)
+    for r in rows:
+        w.writerow(r)
+    buf.seek(0)
+    return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv",
+                             headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+@app.get("/api/exports/matches.csv")
+async def export_matches_csv(season_id: Optional[str] = None):
+    q = {}
+    if season_id:
+        q["season_id"] = season_id
+    matches = await db.matches.find(q, {"_id": 0}).sort("played_at", -1).to_list(10000)
+    players = {p["id"]: p["name"] for p in await db.players.find({}, {"_id": 0}).to_list(1000)}
+    seasons = {s["id"]: s["name"] for s in await db.seasons.find({}, {"_id": 0}).to_list(1000)}
+    rows = []
+    for m in matches:
+        for p in m["players"]:
+            rows.append([
+                m["played_at"], seasons.get(m["season_id"], ""), m["format"],
+                f"{m['team_a_rounds']}-{m['team_b_rounds']}", m.get("winner_team", ""),
+                p["team"], players.get(p["player_id"], ""),
+                p["champion"], p["role"], p.get("elo_delta", 0),
+                m.get("notes", ""),
+            ])
+    return _csv_response(rows,
+        ["played_at", "season", "format", "score", "winner_team", "team", "player", "champion", "role", "elo_delta", "notes"],
+        "matches.csv")
+
+@app.get("/api/exports/leaderboard.csv")
+async def export_leaderboard_csv(season_id: Optional[str] = None):
+    lb = await leaderboard(season_id=season_id)
+    rows = [[r["rank"], r["name"], round(r["mmr"], 2), round(r["peak_mmr"], 2),
+             r["wins"], r["losses"], r["winrate"], r["rounds_won"], r["rounds_lost"]] for r in lb]
+    return _csv_response(rows,
+        ["rank", "player", "mmr", "peak_mmr", "wins", "losses", "winrate", "rounds_won", "rounds_lost"],
+        "leaderboard.csv")
 
 # CORS
 app.add_middleware(

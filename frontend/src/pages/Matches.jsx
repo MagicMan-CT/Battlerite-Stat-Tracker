@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "@/api";
 import { toast } from "sonner";
-import { Trash2, Filter, Pencil, Search } from "lucide-react";
+import { Trash2, Filter, Pencil, Search, Download } from "lucide-react";
 import { useAuth } from "@/AuthContext";
 import EditMatchDialog from "@/components/EditMatchDialog";
 import ChampionPortrait from "@/components/ChampionPortrait";
@@ -48,9 +48,18 @@ export default function Matches() {
 
   return (
     <div className="space-y-6" data-testid="matches-page">
-      <div>
-        <div className="text-xs font-mono-hud uppercase tracking-[0.3em] text-cyan-400/70 mb-2">// History Feed</div>
-        <h1 className="font-heading text-4xl sm:text-5xl font-black uppercase tracking-tight">Match History</h1>
+      <div className="flex items-end justify-between flex-wrap gap-3">
+        <div>
+          <div className="text-xs font-mono-hud uppercase tracking-[0.3em] text-cyan-400/70 mb-2">// History Feed</div>
+          <h1 className="font-heading text-4xl sm:text-5xl font-black uppercase tracking-tight">Match History</h1>
+        </div>
+        <a
+          href={`${process.env.REACT_APP_BACKEND_URL}/api/exports/matches.csv${seasonFilter ? `?season_id=${seasonFilter}` : ""}`}
+          className="btn-glow bg-cyan-400 hover:bg-cyan-300 text-black font-mono-hud font-bold uppercase tracking-wider text-xs px-4 py-2.5 rounded flex items-center gap-2"
+          data-testid="matches-export-csv"
+        >
+          <Download className="w-4 h-4" strokeWidth={3} /> Export CSV
+        </a>
       </div>
 
       <div className="hud-card p-4 flex flex-wrap gap-3 items-center">

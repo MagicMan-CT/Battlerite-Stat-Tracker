@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "@/api";
-import { Trophy, TrendingUp } from "lucide-react";
+import { Trophy, TrendingUp, Download } from "lucide-react";
 
 const tier = (mmr) => {
   if (mmr >= 1600) return { name: "Grandmaster", color: "text-[#FF2E55]", border: "border-[#FF2E55]" };
@@ -37,9 +37,18 @@ export default function Leaderboard() {
           <div className="text-xs font-mono-hud uppercase tracking-[0.3em] text-cyan-400/70 mb-2">// Rank Ladder</div>
           <h1 className="font-heading text-4xl sm:text-5xl font-black uppercase tracking-tight">Leaderboard</h1>
         </div>
-        <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="bg-[#121828] border border-[#1B2438] rounded px-3 py-2 text-sm" data-testid="leaderboard-season">
-          {seasons.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
+        <div className="flex gap-2 items-end">
+          <a
+            href={`${process.env.REACT_APP_BACKEND_URL}/api/exports/leaderboard.csv${seasonId ? `?season_id=${seasonId}` : ""}`}
+            className="btn-glow bg-cyan-400 hover:bg-cyan-300 text-black font-mono-hud font-bold uppercase tracking-wider text-xs px-4 py-2 rounded flex items-center gap-2"
+            data-testid="leaderboard-export-csv"
+          >
+            <Download className="w-3.5 h-3.5" strokeWidth={3} /> CSV
+          </a>
+          <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="bg-[#121828] border border-[#1B2438] rounded px-3 py-2 text-sm" data-testid="leaderboard-season">
+            {seasons.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+          </select>
+        </div>
       </div>
 
       {rows.length === 0 ? (
