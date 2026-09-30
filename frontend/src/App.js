@@ -1,0 +1,51 @@
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "sonner";
+import { AuthProvider, useAuth } from "@/AuthContext";
+import Layout from "@/components/Layout";
+import Login from "@/pages/Login";
+import Dashboard from "@/pages/Dashboard";
+import LogMatch from "@/pages/LogMatch";
+import Matches from "@/pages/Matches";
+import Leaderboard from "@/pages/Leaderboard";
+import Players from "@/pages/Players";
+import PlayerProfile from "@/pages/PlayerProfile";
+import Matrix from "@/pages/Matrix";
+import Matchmaking from "@/pages/Matchmaking";
+import Seasons from "@/pages/Seasons";
+
+function Protected({ children }) {
+  const { user, loading } = useAuth();
+  if (loading || user === null) {
+    return (
+      <div className="min-h-screen bg-[#06080E] flex items-center justify-center text-cyan-400 font-mono-hud text-sm uppercase tracking-[0.3em]">
+        Loading Terminal…
+      </div>
+    );
+  }
+  if (!user) return <Navigate to="/login" replace />;
+  return <Layout>{children}</Layout>;
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <Toaster theme="dark" richColors position="top-right" />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Protected><Dashboard /></Protected>} />
+          <Route path="/matches" element={<Protected><Matches /></Protected>} />
+          <Route path="/log" element={<Protected><LogMatch /></Protected>} />
+          <Route path="/leaderboard" element={<Protected><Leaderboard /></Protected>} />
+          <Route path="/players" element={<Protected><Players /></Protected>} />
+          <Route path="/players/:id" element={<Protected><PlayerProfile /></Protected>} />
+          <Route path="/matrix" element={<Protected><Matrix /></Protected>} />
+          <Route path="/matchmaking" element={<Protected><Matchmaking /></Protected>} />
+          <Route path="/seasons" element={<Protected><Seasons /></Protected>} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}
+
+export default App;

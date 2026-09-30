@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Chivo:wght@700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;800&family=Outfit:wght@600;800;900&display=swap');
+
+:root {
+    --bg-main: #06080E;
+    --bg-surface: #0C101B;
+    --bg-elevated: #121828;
+    --border-subtle: #1B2438;
+    --cyan: #00F0FF;
+    --amber: #FFB800;
+    --crimson: #FF2E55;
+    --emerald: #00E676;
+}
+
+html, body, #root {
+    background: var(--bg-main);
+    color: #F1F5F9;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+}
+
+::selection {
+    background: #00F0FF;
+    color: #000;
+}
+
+.font-heading { font-family: 'Chivo', 'Outfit', sans-serif; }
+.font-mono-hud { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+
+/* Scanline effect */
+.scanlines::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(rgba(18,24,40,0) 50%, rgba(0,0,0,0.15) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* HUD Card */
+.hud-card {
+    background: #0C101B;
+    border: 1px solid #1B2438;
+    border-radius: 6px;
+    transition: border-color 200ms ease, box-shadow 200ms ease, transform 200ms ease;
+    position: relative;
+}
+.hud-card:hover {
+    border-color: rgba(0, 240, 255, 0.5);
+    box-shadow: 0 0 24px rgba(0, 240, 255, 0.12);
+}
+
+.hud-corner::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0;
+    width: 12px; height: 12px;
+    background: #00F0FF;
+    clip-path: polygon(100% 0, 0 0, 100% 100%);
+    z-index: 2;
+}
+
+.role-melee { color: #FF4655; }
+.role-ranged { color: #00F0FF; }
+.role-support { color: #00E676; }
+
+.role-bg-melee { background: rgba(255,70,85,0.12); border-color: rgba(255,70,85,0.35); color: #FF4655; }
+.role-bg-ranged { background: rgba(0,240,255,0.12); border-color: rgba(0,240,255,0.35); color: #00F0FF; }
+.role-bg-support { background: rgba(0,230,118,0.12); border-color: rgba(0,230,118,0.35); color: #00E676; }
+
+@layer base {
+    :root {
+        --background: 220 40% 4%;
+        --foreground: 210 40% 96%;
+        --card: 222 30% 8%;
+        --card-foreground: 210 40% 96%;
+        --popover: 222 30% 8%;
+        --popover-foreground: 210 40% 96%;
+        --primary: 187 100% 50%;
+        --primary-foreground: 220 40% 4%;
+        --secondary: 220 25% 12%;
+        --secondary-foreground: 210 40% 96%;
+        --muted: 220 25% 12%;
+        --muted-foreground: 215 20% 65%;
+        --accent: 220 25% 15%;
+        --accent-foreground: 210 40% 96%;
+        --destructive: 348 100% 59%;
+        --destructive-foreground: 210 40% 96%;
+        --border: 218 30% 17%;
+        --input: 218 30% 17%;
+        --ring: 187 100% 50%;
+        --radius: 0.5rem;
+    }
+}
+
+@layer base {
+    * { @apply border-border; }
+    body { @apply bg-background text-foreground; }
+}
+
+/* Glow button */
+.btn-glow {
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.3);
+    transition: box-shadow 200ms ease, transform 200ms ease;
+}
+.btn-glow:hover {
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.55);
+    transform: translateY(-1px);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #0C101B; }
+::-webkit-scrollbar-thumb { background: #1B2438; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #00F0FF; }

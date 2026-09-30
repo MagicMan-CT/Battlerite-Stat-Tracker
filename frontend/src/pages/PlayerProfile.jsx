@@ -1,0 +1,140 @@
+import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import api from "@/api";
+import { Trophy, Swords, Flame, Users } from "lucide-react";
+
+const roleClass = (r) => r === "Melee" ? "role-bg-melee" : r === "Ranged" ? "role-bg-ranged" : "role-bg-support";
+
+export default function PlayerProfile() {
+  const { id } = useParams();
+  const [stats, setStats] = useState(null);
+  const [seasons, setSeasons] = useState([]);
+  const [seasonId, setSeasonId] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      const s = await api.get("/seasons");
+      setSeasons(s.data);
+    })();
+  }, []);
+
+  useEffect(() => {
+    const params = {};
+    if (seasonId) params.season_id = seasonId;
+    api.get(`/stats/player/${id}`, { params }).then((r) => setStats(r.data));
+  }, [id, seasonId]);
+
+  if (!stats) return <div className="text-slate-400 font-mono-hud">Loading dossier...</div>;
+
+  return (
+    <div className="space-y-6" data-testid="player-profile-page">
+      <div className="flex items-end justify-between flex-wrap gap-4">
+        <div>
+          <div className="text-xs font-mono-hud uppercase tracking-[0.3em] text-cyan-400/70 mb-2">// Player Dossier</div>
+          <h1 className="font-heading text-4xl sm:text-5xl font-black uppercase tracking-tight">{stats.player.name}</h1>
+        </div>
+        <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="bg-[#121828] border border-[#1B2438] rounded px-3 py-2 text-sm" data-testid="profile-season">
+          <option value="">All seasons</option>
+          {seasons.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="hud-card hud-corner p-5">
+          <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-slate-400 mb-2">MMR</div>
+          <div className="font-mono-hud text-3xl font-black text-cyan-400">{Math.round(stats.mmr)}</div>
+          <div className="text-[10px] font-mono-hud text-slate-500 mt-1">Peak {Math.round(stats.peak_mmr)}</div>
+        </div>
+        <div className="hud-card hud-corner p-5">
+          <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-slate-400 mb-2">Matches</div>
+          <div className="font-mono-hud text-3xl font-black">{stats.total_matches}</div>
+          <div className="text-[10px] font-mono-hud text-slate-500 mt-1">{stats.total_wins}W · {stats.total_losses}L</div>
+        </div>
+        <div className="hud-card hud-corner p-5">
+          <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-slate-400 mb-2">Winrate</div>
+          <div className="font-mono-hud text-3xl font-black text-[#00E676]">{stats.winrate}%</div>
+        </div>
+        <div className="hud-card hud-corner p-5">
+          <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-slate-400 mb-2">Fav Champion</div>
+          <div className="font-heading text-xl font-black text-[#FFB800] truncate">{stats.champions[0]?.champion || "—"}</div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="hud-card p-5">
+          <h3 className="font-heading text-lg font-bold uppercase mb-4 flex items-center gap-2"><Flame className="w-4 h-4 text-[#FFB800]" /> Champion Pool</h3>
+          {stats.champions.length === 0 ? <div className="text-slate-500 text-sm font-mono-hud">No matches yet.</div> : (
+            <div className="space-y-2">
+              {stats.champions.slice(0, 8).map((c) => (
+                <div key={c.champion} className="flex items-center justify-between p-2 bg-[#121828]/60 border border-[#1B2438] rounded">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[9px] font-mono-hud uppercase px-1.5 py-0.5 rounded border ${roleClass(c.role)}`}>{c.role.slice(0,3)}</span>
+                    <span className="font-medium">{c.champion}</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono-hud text-slate-400">{c.matches}m</span>
+                    <span className="font-mono-hud text-[#00E676] font-bold text-sm">{c.winrate}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="hud-card p-5">
+          <h3 className="font-heading text-lg font-bold uppercase mb-4 flex items-center gap-2"><Users className="w-4 h-4 text-cyan-400" /> Role Distribution</h3>
+          <div className="space-y-3">
+            {stats.roles.map((r) => (
+              <div key={r.role}>
+                <div className="flex justify-between text-xs font-mono-hud mb-1">
+                  <span className={r.role === "Melee" ? "role-melee" : r.role === "Ranged" ? "role-ranged" : "role-support"}>{r.role}</span>
+                  <span className="text-slate-400">{r.matches} matches · {r.winrate}% WR</span>
+                </div>
+                <div className="h-2 bg-[#121828] rounded overflow-hidden">
+                  <div className={`h-full ${r.role === "Melee" ? "bg-[#FF4655]" : r.role === "Ranged" ? "bg-cyan-400" : "bg-[#00E676]"}`}
+                    style={{ width: `${stats.total_matches ? (r.matches / stats.total_matches) * 100 : 0}%` }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="hud-card p-5">
+          <h3 className="font-heading text-lg font-bold uppercase mb-4 text-cyan-400">Teammates (H2H)</h3>
+          {stats.teammates.length === 0 ? <div className="text-slate-500 text-sm font-mono-hud">No teammates yet.</div> : (
+            <div className="space-y-2">
+              {stats.teammates.map((t) => (
+                <div key={t.player_id} className="flex items-center justify-between p-2 bg-[#121828]/60 border border-[#1B2438] rounded">
+                  <Link to={`/players/${t.player_id}`} className="hover:text-cyan-400">{t.name}</Link>
+                  <div className="flex items-center gap-3 text-xs font-mono-hud">
+                    <span className="text-slate-400">{t.wins}W / {t.matches - t.wins}L</span>
+                    <span className={t.winrate >= 50 ? "text-[#00E676]" : "text-[#FF2E55]"}>{t.winrate}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="hud-card p-5">
+          <h3 className="font-heading text-lg font-bold uppercase mb-4 text-[#FF2E55]">Opponents (H2H)</h3>
+          {stats.opponents.length === 0 ? <div className="text-slate-500 text-sm font-mono-hud">No opponents yet.</div> : (
+            <div className="space-y-2">
+              {stats.opponents.map((o) => (
+                <div key={o.player_id} className="flex items-center justify-between p-2 bg-[#121828]/60 border border-[#1B2438] rounded">
+                  <Link to={`/players/${o.player_id}`} className="hover:text-cyan-400">{o.name}</Link>
+                  <div className="flex items-center gap-3 text-xs font-mono-hud">
+                    <span className="text-slate-400">{o.wins}W / {o.matches - o.wins}L</span>
+                    <span className={o.winrate >= 50 ? "text-[#00E676]" : "text-[#FF2E55]"}>{o.winrate}%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
