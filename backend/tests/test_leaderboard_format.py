@@ -34,12 +34,15 @@ def seeded_season(api_client):
                             json={"name": f"TEST_P{i}_{tag}"}).json()
         players.append(p)
 
+    champs_a = ["Bakko", "Croak", "Rook"]
+    champs_b = ["Jumong", "Varesh", "Pearl"]
+
     def mk(fmt, a_ids, b_ids, ra, rb):
         plist = []
-        for pid in a_ids:
-            plist.append({"player_id": pid, "champion": "Bakko", "role": "Melee", "team": "A"})
-        for pid in b_ids:
-            plist.append({"player_id": pid, "champion": "Jumong", "role": "Ranged", "team": "B"})
+        for i, pid in enumerate(a_ids):
+            plist.append({"player_id": pid, "champion": champs_a[i], "role": "Melee", "team": "A"})
+        for i, pid in enumerate(b_ids):
+            plist.append({"player_id": pid, "champion": champs_b[i], "role": "Ranged", "team": "B"})
         r = api_client.post(f"{BASE_URL}/api/matches", json={
             "season_id": sid, "format": fmt,
             "team_a_rounds": ra, "team_b_rounds": rb, "players": plist,
