@@ -5,7 +5,7 @@ import { Swords, Trophy, Users, Grid3x3, Sliders, Calendar, LayoutDashboard, Plu
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, testid: "nav-dashboard" },
   { to: "/matches", label: "Matches", icon: Swords, testid: "nav-matches" },
-  { to: "/log", label: "Log Match", icon: PlusCircle, testid: "nav-log" },
+  { to: "/log", label: "Log Match", icon: PlusCircle, testid: "nav-log", adminOnly: true },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy, testid: "nav-leaderboard" },
   { to: "/players", label: "Players", icon: Users, testid: "nav-players" },
   { to: "/matrix", label: "PvP Matrix", icon: Grid3x3, testid: "nav-matrix" },
@@ -16,8 +16,10 @@ const links = [
 ];
 
 export default function Layout({ children }) {
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const nav = useNavigate();
+
+  const visibleLinks = links.filter((l) => !l.adminOnly || isAdmin);
 
   return (
     <div className="min-h-screen bg-[#06080E] text-slate-100 flex flex-col">
@@ -34,6 +36,11 @@ export default function Layout({ children }) {
           </div>
           <div className="flex items-center gap-2">
             <span className="hidden md:inline font-mono-hud text-xs text-slate-400" data-testid="nav-user-email">{user?.email}</span>
+            {user?.role && (
+              <span className={`text-[10px] font-mono-hud uppercase tracking-wider px-2 py-0.5 border rounded ${isAdmin ? "text-[#FFB800] border-[#FFB800]/50 bg-[#FFB800]/10" : "text-cyan-400 border-cyan-400/40 bg-cyan-400/10"}`} data-testid="nav-user-role">
+                {user.role}
+              </span>
+            )}
             <button
               onClick={async () => { await logout(); nav("/login"); }}
               className="flex items-center gap-2 px-3 py-1.5 text-xs font-mono-hud uppercase tracking-wider text-slate-300 border border-[#1B2438] hover:border-crimson-500 hover:text-[#FF2E55] rounded transition-colors"
@@ -45,7 +52,7 @@ export default function Layout({ children }) {
         </div>
         <nav className="border-t border-[#1B2438]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-1 overflow-x-auto">
-            {links.map((l) => (
+            {visibleLinks.map((l) => (
               <NavLink
                 key={l.to}
                 to={l.to}

@@ -3,6 +3,7 @@ import api from "@/api";
 import { toast } from "sonner";
 import { Calendar, Plus, CheckCircle, Trash2, Pencil } from "lucide-react";
 import SeasonCountdown from "@/components/SeasonCountdown";
+import { useAuth } from "@/AuthContext";
 
 export default function Seasons() {
   const [seasons, setSeasons] = useState([]);
@@ -10,6 +11,7 @@ export default function Seasons() {
   const [endDate, setEndDate] = useState("");
   const [editingId, setEditingId] = useState(null);
   const [editEnd, setEditEnd] = useState("");
+  const { isAdmin } = useAuth();
 
   const load = async () => {
     const s = await api.get("/seasons");
@@ -64,19 +66,21 @@ export default function Seasons() {
         <h1 className="font-heading text-4xl sm:text-5xl font-black uppercase tracking-tight flex items-center gap-3"><Calendar className="w-8 h-8 text-cyan-400" /> Seasons</h1>
       </div>
 
-      <form onSubmit={create} className="hud-card p-5 grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 items-end">
-        <div>
-          <label className="block text-xs font-mono-hud uppercase tracking-[0.2em] text-cyan-400/80 mb-1.5">Season Name</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Season 2 - Autumn Cup" className="w-full bg-[#121828] border border-[#1B2438] focus:border-cyan-400 focus:outline-none rounded px-3 py-2.5 text-sm" data-testid="season-name-input" />
-        </div>
-        <div>
-          <label className="block text-xs font-mono-hud uppercase tracking-[0.2em] text-cyan-400/80 mb-1.5">End Date (optional)</label>
-          <input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-[#121828] border border-[#1B2438] focus:border-cyan-400 focus:outline-none rounded px-3 py-2.5 text-sm text-slate-200" data-testid="season-end-input" />
-        </div>
-        <button type="submit" className="btn-glow bg-cyan-400 hover:bg-cyan-300 text-black font-mono-hud font-bold uppercase tracking-wider px-5 py-2.5 rounded flex items-center gap-2" data-testid="season-add-btn">
-          <Plus className="w-4 h-4" strokeWidth={3} /> Create
-        </button>
-      </form>
+      {isAdmin && (
+        <form onSubmit={create} className="hud-card p-5 grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-3 items-end">
+          <div>
+            <label className="block text-xs font-mono-hud uppercase tracking-[0.2em] text-cyan-400/80 mb-1.5">Season Name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Season 2 - Autumn Cup" className="w-full bg-[#121828] border border-[#1B2438] focus:border-cyan-400 focus:outline-none rounded px-3 py-2.5 text-sm" data-testid="season-name-input" />
+          </div>
+          <div>
+            <label className="block text-xs font-mono-hud uppercase tracking-[0.2em] text-cyan-400/80 mb-1.5">End Date (optional)</label>
+            <input type="datetime-local" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="bg-[#121828] border border-[#1B2438] focus:border-cyan-400 focus:outline-none rounded px-3 py-2.5 text-sm text-slate-200" data-testid="season-end-input" />
+          </div>
+          <button type="submit" className="btn-glow bg-cyan-400 hover:bg-cyan-300 text-black font-mono-hud font-bold uppercase tracking-wider px-5 py-2.5 rounded flex items-center gap-2" data-testid="season-add-btn">
+            <Plus className="w-4 h-4" strokeWidth={3} /> Create
+          </button>
+        </form>
+      )}
 
       {seasons.find((s) => s.active && s.end_date) && (
         <SeasonCountdown endDate={seasons.find((s) => s.active).end_date} seasonName={seasons.find((s) => s.active).name} />
@@ -101,17 +105,21 @@ export default function Seasons() {
               )}
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={() => { setEditingId(s.id); setEditEnd(s.end_date ? new Date(s.end_date).toISOString().slice(0, 16) : ""); }} className="text-slate-500 hover:text-cyan-400 p-1.5" data-testid={`season-edit-${s.id}`}>
-                <Pencil className="w-4 h-4" />
-              </button>
-              {!s.active && (
+              {isAdmin && (
+                <button onClick={() => { setEditingId(s.id); setEditEnd(s.end_date ? new Date(s.end_date).toISOString().slice(0, 16) : ""); }} className="text-slate-500 hover:text-cyan-400 p-1.5" data-testid={`season-edit-${s.id}`}>
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+              {isAdmin && !s.active && (
                 <button onClick={() => activate(s.id)} className="text-xs font-mono-hud uppercase tracking-wider px-3 py-1.5 border border-[#1B2438] hover:border-cyan-400 hover:text-cyan-400 rounded flex items-center gap-1" data-testid={`season-activate-${s.id}`}>
                   <CheckCircle className="w-3.5 h-3.5" /> Activate
                 </button>
               )}
-              <button onClick={() => del(s.id)} className="text-slate-500 hover:text-[#FF2E55] p-1.5" data-testid={`season-delete-${s.id}`}>
-                <Trash2 className="w-4 h-4" />
-              </button>
+              {isAdmin && (
+                <button onClick={() => del(s.id)} className="text-slate-500 hover:text-[#FF2E55] p-1.5" data-testid={`season-delete-${s.id}`}>
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
             </div>
           </div>
         ))}

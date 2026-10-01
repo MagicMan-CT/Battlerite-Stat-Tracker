@@ -108,10 +108,22 @@ async def get_current_user(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="Invalid token")
 
 
+async def admin_required(request: Request) -> dict:
+    user = await get_current_user(request)
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    return user
+
+
 # --------- Models ---------
 class LoginInput(BaseModel):
     email: EmailStr
     password: str
+
+class RegisterInput(BaseModel):
+    email: EmailStr
+    password: str
+    name: Optional[str] = None
 
 class SeasonCreate(BaseModel):
     name: str
@@ -240,6 +252,30 @@ async def login(data: LoginInput, response: Response):
     return {"id": user["id"], "email": user["email"], "name": user["name"], "role": user["role"], "token": token}
 
 
+@api_router.post("/auth/register")
+async def register(data: RegisterInput, response: Response):
+    email = data.email.lower().strip()
+    if len(data.password) < 6:
+        raise HTTPException(400, "Password must be at least 6 characters")
+    existing = await db.users.find_one({"email": email})
+    if existing:
+        raise HTTPException(409, "An account with this email already exists")
+    uid = str(uuid.uuid4())
+    name = (data.name or email.split("@")[0]).strip() or email
+    await db.users.insert_one({
+        "id": uid, "email": email,
+        "password_hash": hash_password(data.password),
+        "name": name, "role": "viewer",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    token = create_access_token(uid, email)
+    response.set_cookie(
+        key="access_token", value=token, httponly=True,
+        secure=True, samesite="none", max_age=7 * 24 * 3600, path="/",
+    )
+    return {"id": uid, "email": email, "name": name, "role": "viewer", "token": token}
+
+
 @api_router.post("/auth/logout")
 async def logout(response: Response, user: dict = Depends(get_current_user)):
     response.delete_cookie("access_token", path="/")
@@ -297,7 +333,7 @@ async def list_seasons():
     return docs
 
 @api_router.post("/seasons")
-async def create_season(data: SeasonCreate, user: dict = Depends(get_current_user)):
+async def create_season(data: SeasonCreate, user: dict = Depends(admin_required)):
     # Deactivate others
     await db.seasons.update_many({}, {"$set": {"active": False}})
     doc = {
@@ -312,7 +348,7 @@ async def create_season(data: SeasonCreate, user: dict = Depends(get_current_use
     return doc
 
 @api_router.patch("/seasons/{sid}")
-async def update_season(sid: str, data: SeasonUpdate, user: dict = Depends(get_current_user)):
+async def update_season(sid: str, data: SeasonUpdate, user: dict = Depends(admin_required)):
     upd = {k: v for k, v in data.model_dump().items() if v is not None}
     if not upd:
         raise HTTPException(400, "Nothing to update")
@@ -323,7 +359,7 @@ async def update_season(sid: str, data: SeasonUpdate, user: dict = Depends(get_c
     return doc
 
 @api_router.post("/seasons/{sid}/activate")
-async def activate_season(sid: str, user: dict = Depends(get_current_user)):
+async def activate_season(sid: str, user: dict = Depends(admin_required)):
     await db.seasons.update_many({}, {"$set": {"active": False}})
     result = await db.seasons.update_one({"id": sid}, {"$set": {"active": True}})
     if result.matched_count == 0:
@@ -331,7 +367,7 @@ async def activate_season(sid: str, user: dict = Depends(get_current_user)):
     return {"ok": True}
 
 @api_router.delete("/seasons/{sid}")
-async def delete_season(sid: str, user: dict = Depends(get_current_user)):
+async def delete_season(sid: str, user: dict = Depends(admin_required)):
     await db.seasons.delete_one({"id": sid})
     await db.matches.delete_many({"season_id": sid})
     return {"ok": True}
@@ -344,7 +380,7 @@ async def list_players():
     return sorted(docs, key=lambda x: x["name"].lower())
 
 @api_router.post("/players")
-async def create_player(data: PlayerCreate, user: dict = Depends(get_current_user)):
+async def create_player(data: PlayerCreate, user: dict = Depends(admin_required)):
     doc = {
         "id": str(uuid.uuid4()),
         "name": data.name.strip(),
@@ -355,7 +391,7 @@ async def create_player(data: PlayerCreate, user: dict = Depends(get_current_use
     return doc
 
 @api_router.delete("/players/{pid}")
-async def delete_player(pid: str, user: dict = Depends(get_current_user)):
+async def delete_player(pid: str, user: dict = Depends(admin_required)):
     await db.players.delete_one({"id": pid})
     return {"ok": True}
 
@@ -408,7 +444,7 @@ async def _team_mmr(player_ids: List[str], season_id: str) -> float:
 
 
 @api_router.post("/matches")
-async def create_match(data: MatchCreate, user: dict = Depends(get_current_user)):
+async def create_match(data: MatchCreate, user: dict = Depends(admin_required)):
     await check_and_close_expired_seasons()
     # Validate
     team_a = [p for p in data.players if p.team == "A"]
@@ -482,7 +518,7 @@ async def list_matches(season_id: Optional[str] = None, player_id: Optional[str]
 
 
 @api_router.put("/matches/{mid}")
-async def update_match(mid: str, data: MatchCreate, user: dict = Depends(get_current_user)):
+async def update_match(mid: str, data: MatchCreate, user: dict = Depends(admin_required)):
     existing = await db.matches.find_one({"id": mid})
     if not existing:
         raise HTTPException(404, "Match not found")
@@ -521,7 +557,7 @@ async def update_match(mid: str, data: MatchCreate, user: dict = Depends(get_cur
 
 
 @api_router.delete("/matches/{mid}")
-async def delete_match(mid: str, user: dict = Depends(get_current_user)):
+async def delete_match(mid: str, user: dict = Depends(admin_required)):
     existing = await db.matches.find_one({"id": mid})
     if not existing:
         return {"ok": True}

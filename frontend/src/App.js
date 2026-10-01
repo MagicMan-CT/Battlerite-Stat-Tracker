@@ -15,8 +15,8 @@ import Matchmaking from "@/pages/Matchmaking";
 import Recap from "@/pages/Recap";
 import Seasons from "@/pages/Seasons";
 
-function Protected({ children }) {
-  const { user, loading } = useAuth();
+function Protected({ children, adminOnly }) {
+  const { user, loading, isAdmin } = useAuth();
   if (loading || user === null) {
     return (
       <div className="min-h-screen bg-[#06080E] flex items-center justify-center text-cyan-400 font-mono-hud text-sm uppercase tracking-[0.3em]">
@@ -25,6 +25,7 @@ function Protected({ children }) {
     );
   }
   if (!user) return <Navigate to="/login" replace />;
+  if (adminOnly && !isAdmin) return <Navigate to="/" replace />;
   return <Layout>{children}</Layout>;
 }
 
@@ -37,7 +38,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<Protected><Dashboard /></Protected>} />
           <Route path="/matches" element={<Protected><Matches /></Protected>} />
-          <Route path="/log" element={<Protected><LogMatch /></Protected>} />
+          <Route path="/log" element={<Protected adminOnly><LogMatch /></Protected>} />
           <Route path="/leaderboard" element={<Protected><Leaderboard /></Protected>} />
           <Route path="/players" element={<Protected><Players /></Protected>} />
           <Route path="/players/:id" element={<Protected><PlayerProfile /></Protected>} />

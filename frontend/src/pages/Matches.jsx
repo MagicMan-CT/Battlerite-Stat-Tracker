@@ -17,7 +17,7 @@ export default function Matches() {
   const [playerFilter, setPlayerFilter] = useState("");
   const [search, setSearch] = useState("");
   const [editing, setEditing] = useState(null);
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
 
   const load = async () => {
     const params = {};
@@ -102,7 +102,7 @@ export default function Matches() {
                     <span className="text-[10px] font-mono-hud uppercase text-slate-500">{new Date(m.played_at).toLocaleString()}</span>
                     {m.notes && <span className="text-xs text-slate-400 italic">"{m.notes}"</span>}
                   </div>
-                  {user && (
+                  {isAdmin && (
                     <div className="flex items-center gap-1">
                       <button onClick={() => setEditing(m)} className="text-slate-500 hover:text-cyan-400 text-xs flex items-center gap-1 p-1" data-testid={`match-edit-${m.id}`}><Pencil className="w-3.5 h-3.5" /></button>
                       <button onClick={() => del(m.id)} className="text-slate-500 hover:text-[#FF2E55] text-xs flex items-center gap-1 p-1" data-testid={`match-delete-${m.id}`}><Trash2 className="w-3.5 h-3.5" /></button>
