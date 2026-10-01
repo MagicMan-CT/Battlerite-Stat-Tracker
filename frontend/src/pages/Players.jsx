@@ -11,6 +11,7 @@ export default function Players() {
     const p = await api.get("/players");
     setPlayers(p.data);
   };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, []);
 
   const add = async (e) => {

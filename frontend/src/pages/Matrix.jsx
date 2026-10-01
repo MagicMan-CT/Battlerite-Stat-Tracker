@@ -12,6 +12,7 @@ export default function Matrix() {
       const s = await api.get("/seasons");
       setSeasons(s.data);
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

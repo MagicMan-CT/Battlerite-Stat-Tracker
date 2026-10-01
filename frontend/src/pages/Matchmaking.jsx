@@ -27,6 +27,7 @@ export default function Matchmaking() {
       const active = s.data.find((x) => x.active) || s.data[0];
       setSeasonId(active?.id || "");
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const size = { "2v2": 4, "3v3": 6 }[format];

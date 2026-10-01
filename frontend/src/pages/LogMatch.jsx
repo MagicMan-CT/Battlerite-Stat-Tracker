@@ -29,6 +29,7 @@ export default function LogMatch() {
       setPlayers(p.data);
       setChampions(c.data);
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const applyFormat = (fmt) => {

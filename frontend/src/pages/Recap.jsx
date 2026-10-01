@@ -12,6 +12,7 @@ export default function Recap() {
 
   useEffect(() => {
     api.get("/seasons").then((r) => setSeasons(r.data));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

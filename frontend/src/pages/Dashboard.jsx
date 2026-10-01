@@ -39,6 +39,7 @@ export default function Dashboard() {
       setMatches(mm.data);
       setPlayers(pp.data);
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalMatches = matches.length;

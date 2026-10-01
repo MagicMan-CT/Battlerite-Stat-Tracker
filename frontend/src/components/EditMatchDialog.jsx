@@ -23,6 +23,7 @@ export default function EditMatchDialog({ match, onClose, onSaved }) {
       const [s, p, c] = await Promise.all([api.get("/seasons"), api.get("/players"), api.get("/champions")]);
       setSeasons(s.data); setPlayers(p.data); setChampions(c.data);
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const getChampRole = (name) => champions.find((c) => c.name === name)?.role || "";

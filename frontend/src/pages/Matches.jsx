@@ -33,6 +33,7 @@ export default function Matches() {
       setSeasons(s.data);
       setPlayers(p.data);
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => { load(); }, [seasonFilter, playerFilter]);
@@ -110,8 +111,8 @@ export default function Matches() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 items-center">
                   <div className={`p-3 rounded border ${aWon ? "border-[#00E676]/40 bg-[#00E676]/5" : "border-[#1B2438] bg-[#121828]/40"}`}>
-                    {teamA.map((p, i) => (
-                      <div key={i} className="flex items-center justify-between gap-2 py-1">
+                    {teamA.map((p) => (
+                      <div key={`a-${p.player_id}-${p.champion}`} className="flex items-center justify-between gap-2 py-1">
                         <div className="flex items-center gap-2 min-w-0">
                           <ChampionPortrait name={p.champion} role={p.role} size={26} />
                           <Link to={`/players/${p.player_id}`} className="text-sm font-medium hover:text-cyan-400 truncate">{playerName(p.player_id)}</Link>
@@ -131,8 +132,8 @@ export default function Matches() {
                     </div>
                   </div>
                   <div className={`p-3 rounded border ${!aWon ? "border-[#00E676]/40 bg-[#00E676]/5" : "border-[#1B2438] bg-[#121828]/40"}`}>
-                    {teamB.map((p, i) => (
-                      <div key={i} className="flex items-center justify-between gap-2 py-1">
+                    {teamB.map((p) => (
+                      <div key={`b-${p.player_id}-${p.champion}`} className="flex items-center justify-between gap-2 py-1">
                         <div className="flex items-center gap-2 min-w-0">
                           <ChampionPortrait name={p.champion} role={p.role} size={26} />
                           <Link to={`/players/${p.player_id}`} className="text-sm font-medium hover:text-cyan-400 truncate">{playerName(p.player_id)}</Link>

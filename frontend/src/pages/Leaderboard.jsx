@@ -25,6 +25,7 @@ export default function Leaderboard() {
       const active = s.data.find((x) => x.active) || s.data[0];
       setSeasonId(active?.id || "");
     })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
