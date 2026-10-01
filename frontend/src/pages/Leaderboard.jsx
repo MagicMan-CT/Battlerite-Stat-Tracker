@@ -1,15 +1,21 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "@/api";
-import { Trophy, TrendingUp, Download } from "lucide-react";
+import { Trophy, TrendingUp, Download, Info } from "lucide-react";
 import StreakBadge from "@/components/StreakBadge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+const TIERS = [
+  { name: "Grandmaster", min: 1600, max: null, color: "text-[#FF2E55]", border: "border-[#FF2E55]", desc: "Legendary tier. The ceiling of competitive play." },
+  { name: "Champion", min: 1450, max: 1599, color: "text-[#FFB800]", border: "border-[#FFB800]", desc: "Top-tier mains with proven consistency." },
+  { name: "Diamond", min: 1300, max: 1449, color: "text-cyan-400", border: "border-cyan-400", desc: "Advanced players — well above average." },
+  { name: "Gold", min: 1150, max: 1299, color: "text-yellow-400", border: "border-yellow-400", desc: "Solid competitive players climbing the ladder." },
+  { name: "Silver", min: 0, max: 1149, color: "text-slate-400", border: "border-slate-400", desc: "Entry-tier players. Everyone starts here at 1200 MMR." },
+];
 
 const tier = (mmr) => {
-  if (mmr >= 1600) return { name: "Grandmaster", color: "text-[#FF2E55]", border: "border-[#FF2E55]" };
-  if (mmr >= 1450) return { name: "Champion", color: "text-[#FFB800]", border: "border-[#FFB800]" };
-  if (mmr >= 1300) return { name: "Diamond", color: "text-cyan-400", border: "border-cyan-400" };
-  if (mmr >= 1150) return { name: "Gold", color: "text-yellow-400", border: "border-yellow-400" };
-  return { name: "Silver", color: "text-slate-400", border: "border-slate-400" };
+  const t = TIERS.find((x) => mmr >= x.min && (x.max === null || mmr <= x.max));
+  return t || TIERS[TIERS.length - 1];
 };
 
 export default function Leaderboard() {
@@ -42,7 +48,41 @@ export default function Leaderboard() {
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <div className="text-xs font-mono-hud uppercase tracking-[0.3em] text-cyan-400/70 mb-2">// Rank Ladder</div>
-          <h1 className="font-heading text-4xl sm:text-5xl font-black uppercase tracking-tight">Leaderboard</h1>
+          <h1 className="font-heading text-4xl sm:text-5xl font-black uppercase tracking-tight flex items-center gap-3">
+            Leaderboard
+            <Popover>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center w-9 h-9 rounded border border-[#1B2438] bg-[#121828] text-cyan-400 hover:border-cyan-400 hover:bg-cyan-400/10 transition-colors"
+                  data-testid="tier-info-btn"
+                  aria-label="Tier system info"
+                >
+                  <Info className="w-4 h-4" strokeWidth={2.5} />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-80 bg-[#0C101B] border-[#1B2438] text-slate-100 p-4" data-testid="tier-info-panel">
+                <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-cyan-400/80 mb-1">// Tier System</div>
+                <h3 className="font-heading text-lg font-black uppercase tracking-tight mb-2">How ranks work</h3>
+                <p className="text-xs text-slate-400 font-mono-hud leading-relaxed mb-3">
+                  Everyone starts at 1200 MMR. Each match you win pushes your MMR up (and losses down), scaled by K=32, your opponents' average MMR, and the round differential multiplier.
+                </p>
+                <div className="space-y-2">
+                  {TIERS.map((t) => (
+                    <div key={t.name} className="flex items-start gap-3 p-2 bg-[#121828]/60 border border-[#1B2438] rounded" data-testid={`tier-row-${t.name.toLowerCase()}`}>
+                      <span className={`text-[10px] font-mono-hud uppercase tracking-wider px-2 py-1 border rounded ${t.color} ${t.border} flex-shrink-0 self-start`}>{t.name}</span>
+                      <div className="min-w-0">
+                        <div className="font-mono-hud text-xs font-bold text-slate-200">
+                          {t.max === null ? `${t.min}+ MMR` : `${t.min}–${t.max} MMR`}
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">{t.desc}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          </h1>
         </div>
         <div className="flex gap-2 items-end">
           <a href={csvHref}
