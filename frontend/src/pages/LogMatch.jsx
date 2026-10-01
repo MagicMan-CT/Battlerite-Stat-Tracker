@@ -84,16 +84,7 @@ export default function LogMatch() {
 
   const renderTeam = (label, roster, side, color) => (
     <div className={`hud-card p-5 ${side === "A" ? "" : ""}`}>
-      <div className="flex items-center justify-between mb-4">
-        <h3 className={`font-heading text-lg font-black uppercase tracking-wide ${color}`}>Team {label}</h3>
-        <input
-          type="number" min="0" max="20"
-          value={side === "A" ? teamARounds : teamBRounds}
-          onChange={(e) => (side === "A" ? setTeamARounds : setTeamBRounds)(Number(e.target.value))}
-          className="w-20 bg-[#121828] border border-[#1B2438] focus:border-cyan-400 focus:outline-none rounded px-2 py-1.5 font-mono-hud text-2xl font-bold text-center"
-          data-testid={`rounds-team-${side.toLowerCase()}`}
-        />
-      </div>
+      <h3 className={`font-heading text-lg font-black uppercase tracking-wide mb-4 ${color}`}>Team {label}</h3>
       <div className="space-y-3">
         {roster.map((slot, i) => (
           <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -161,6 +152,26 @@ export default function LogMatch() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {renderTeam("A", teamA, "A", "text-cyan-400")}
           {renderTeam("B", teamB, "B", "text-[#FF2E55]")}
+        </div>
+
+        <div className="hud-card hud-corner p-5">
+          <div className="flex items-center justify-center gap-6 flex-wrap">
+            <div className="text-center">
+              <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-cyan-400 mb-2">Team A rounds</div>
+              <input type="number" min="0" max="20" value={teamARounds}
+                onChange={(e) => setTeamARounds(Number(e.target.value))}
+                className="w-24 bg-[#121828] border border-[#1B2438] focus:border-cyan-400 focus:outline-none rounded px-2 py-2 font-mono-hud text-3xl font-black text-center text-cyan-400"
+                data-testid="rounds-team-a" />
+            </div>
+            <div className="font-mono-hud text-4xl font-black text-slate-600 self-end pb-2">:</div>
+            <div className="text-center">
+              <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-[#FF2E55] mb-2">Team B rounds</div>
+              <input type="number" min="0" max="20" value={teamBRounds}
+                onChange={(e) => setTeamBRounds(Number(e.target.value))}
+                className="w-24 bg-[#121828] border border-[#1B2438] focus:border-cyan-400 focus:outline-none rounded px-2 py-2 font-mono-hud text-3xl font-black text-center text-[#FF2E55]"
+                data-testid="rounds-team-b" />
+            </div>
+          </div>
         </div>
 
         <button type="submit" disabled={submitting} className="btn-glow bg-cyan-400 hover:bg-cyan-300 text-black font-mono-hud font-bold uppercase tracking-wider px-6 py-3 rounded flex items-center gap-2 disabled:opacity-60" data-testid="log-submit">

@@ -61,14 +61,7 @@ export default function EditMatchDialog({ match, onClose, onSaved }) {
 
   const renderTeam = (side, roster, color) => (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h4 className={`font-heading text-base font-black uppercase ${color}`}>Team {side}</h4>
-        <input type="number" min="0" max="20"
-          value={side === "A" ? teamARounds : teamBRounds}
-          onChange={(e) => (side === "A" ? setTeamARounds : setTeamBRounds)(Number(e.target.value))}
-          className="w-16 bg-[#121828] border border-[#1B2438] rounded px-2 py-1 font-mono-hud text-lg font-bold text-center"
-          data-testid={`edit-rounds-${side.toLowerCase()}`} />
-      </div>
+      <h4 className={`font-heading text-base font-black uppercase mb-3 ${color}`}>Team {side}</h4>
       <div className="space-y-2">
         {roster.map((slot, i) => (
           <div key={i} className="grid grid-cols-2 gap-2">
@@ -119,6 +112,23 @@ export default function EditMatchDialog({ match, onClose, onSaved }) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
             {renderTeam("A", teamA, "text-cyan-400")}
             {renderTeam("B", teamB, "text-[#FF2E55]")}
+          </div>
+          <div className="flex items-center justify-center gap-4 py-3 border-y border-[#1B2438]">
+            <div className="text-center">
+              <div className="text-[10px] font-mono-hud uppercase tracking-[0.2em] text-cyan-400 mb-1">A rounds</div>
+              <input type="number" min="0" max="20" value={teamARounds}
+                onChange={(e) => setTeamARounds(Number(e.target.value))}
+                className="w-16 bg-[#121828] border border-[#1B2438] rounded px-2 py-1 font-mono-hud text-xl font-bold text-center text-cyan-400"
+                data-testid="edit-rounds-a" />
+            </div>
+            <div className="font-mono-hud text-2xl font-black text-slate-600 self-end pb-1">:</div>
+            <div className="text-center">
+              <div className="text-[10px] font-mono-hud uppercase tracking-[0.2em] text-[#FF2E55] mb-1">B rounds</div>
+              <input type="number" min="0" max="20" value={teamBRounds}
+                onChange={(e) => setTeamBRounds(Number(e.target.value))}
+                className="w-16 bg-[#121828] border border-[#1B2438] rounded px-2 py-1 font-mono-hud text-xl font-bold text-center text-[#FF2E55]"
+                data-testid="edit-rounds-b" />
+            </div>
           </div>
           <div className="flex justify-end gap-2 pt-3 border-t border-[#1B2438]">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm font-mono-hud uppercase border border-[#1B2438] rounded hover:border-slate-400">Cancel</button>
