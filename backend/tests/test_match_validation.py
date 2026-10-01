@@ -10,8 +10,10 @@ if not BASE_URL:
     BASE_URL = "http://localhost:8001"
 API = f"{BASE_URL}/api"
 
-ADMIN_EMAIL = "admin@arenaops.gg"
-ADMIN_PASSWORD = "admin123"
+import os
+
+ADMIN_EMAIL = os.environ.get("TEST_ADMIN_EMAIL", "admin@arenaops.gg")
+ADMIN_PASSWORD = os.environ.get("TEST_ADMIN_PASSWORD", "admin123")
 
 
 @pytest.fixture(scope="module")

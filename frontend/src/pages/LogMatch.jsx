@@ -99,7 +99,7 @@ export default function LogMatch() {
       <h3 className={`font-heading text-lg font-black uppercase tracking-wide mb-4 ${color}`}>Team {label}</h3>
       <div className="space-y-3">
         {roster.map((slot, i) => (
-          <div key={i} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <div key={`${side}-${i}`} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <select
               value={slot.player_id}
               onChange={(e) => setSlot(side, i, "player_id", e.target.value)}

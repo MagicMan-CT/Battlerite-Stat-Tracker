@@ -74,7 +74,7 @@ export default function EditMatchDialog({ match, onClose, onSaved }) {
       <h4 className={`font-heading text-base font-black uppercase mb-3 ${color}`}>Team {side}</h4>
       <div className="space-y-2">
         {roster.map((slot, i) => (
-          <div key={i} className="grid grid-cols-2 gap-2">
+          <div key={`${side}-${i}`} className="grid grid-cols-2 gap-2">
             <select value={slot.player_id} onChange={(e) => setSlot(side, i, "player_id", e.target.value)}
               className="bg-[#121828] border border-[#1B2438] rounded px-2 py-1.5 text-sm" data-testid={`edit-player-${side}-${i}`}>
               <option value="">Player…</option>

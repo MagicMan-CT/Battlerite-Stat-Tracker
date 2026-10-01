@@ -8,8 +8,10 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).resolve().parents[2] / "frontend" / ".env")
 BASE_URL = os.environ['REACT_APP_BACKEND_URL'].rstrip('/')
-ADMIN_EMAIL = "admin@arenaops.gg"
-ADMIN_PASSWORD = "admin123"
+import os
+
+ADMIN_EMAIL = os.environ.get("TEST_ADMIN_EMAIL", "admin@arenaops.gg")
+ADMIN_PASSWORD = os.environ.get("TEST_ADMIN_PASSWORD", "admin123")
 
 
 @pytest.fixture(scope="module")

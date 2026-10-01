@@ -5,13 +5,15 @@ import pytest
 import requests
 
 BASE_URL = os.environ.get('REACT_APP_BACKEND_URL', "https://match-logger-pro-2.preview.emergentagent.com").rstrip('/')
+ADMIN_EMAIL = os.environ.get("TEST_ADMIN_EMAIL", "admin@arenaops.gg")
+ADMIN_PASSWORD = os.environ.get("TEST_ADMIN_PASSWORD", "admin123")
 
 
 @pytest.fixture(scope="module")
 def api_client():
     s = requests.Session()
     s.headers.update({"Content-Type": "application/json"})
-    r = s.post(f"{BASE_URL}/api/auth/login", json={"email": "admin@arenaops.gg", "password": "admin123"})
+    r = s.post(f"{BASE_URL}/api/auth/login", json={"email": ADMIN_EMAIL, "password": ADMIN_PASSWORD})
     assert r.status_code == 200, r.text
     tok = r.json()["token"]
     s.headers.update({"Authorization": f"Bearer {tok}"})
