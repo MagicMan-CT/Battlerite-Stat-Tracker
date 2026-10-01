@@ -517,7 +517,7 @@ async def delete_match(mid: str, user: dict = Depends(get_current_user)):
 
 # --------- Stats ---------
 @api_router.get("/stats/leaderboard")
-async def leaderboard(season_id: Optional[str] = None):
+async def leaderboard(season_id: Optional[str] = None, format: Optional[str] = None):
     if not season_id:
         s = await db.seasons.find_one({"active": True})
         if not s:
@@ -525,7 +525,10 @@ async def leaderboard(season_id: Optional[str] = None):
         season_id = s["id"]
 
     players = await db.players.find({}, {"_id": 0}).to_list(1000)
-    matches = await db.matches.find({"season_id": season_id}, {"_id": 0}).sort("played_at", 1).to_list(10000)
+    q = {"season_id": season_id}
+    if format and format in ("1v1", "2v2", "3v3"):
+        q["format"] = format
+    matches = await db.matches.find(q, {"_id": 0}).sort("played_at", 1).to_list(10000)
 
     stats = {}
     for p in players:
@@ -1006,13 +1009,13 @@ async def export_matches_csv(season_id: Optional[str] = None):
         "matches.csv")
 
 @app.get("/api/exports/leaderboard.csv")
-async def export_leaderboard_csv(season_id: Optional[str] = None):
-    lb = await leaderboard(season_id=season_id)
+async def export_leaderboard_csv(season_id: Optional[str] = None, format: Optional[str] = None):
+    lb = await leaderboard(season_id=season_id, format=format)
     rows = [[r["rank"], r["name"], round(r["mmr"], 2), round(r["peak_mmr"], 2),
              r["wins"], r["losses"], r["winrate"], r["rounds_won"], r["rounds_lost"]] for r in lb]
     return _csv_response(rows,
         ["rank", "player", "mmr", "peak_mmr", "wins", "losses", "winrate", "rounds_won", "rounds_lost"],
-        "leaderboard.csv")
+        f"leaderboard{('_' + format) if format else ''}.csv")
 
 # CORS
 app.add_middleware(

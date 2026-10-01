@@ -16,6 +16,7 @@ export default function Leaderboard() {
   const [rows, setRows] = useState([]);
   const [seasons, setSeasons] = useState([]);
   const [seasonId, setSeasonId] = useState("");
+  const [format, setFormat] = useState("all");
 
   useEffect(() => {
     (async () => {
@@ -28,8 +29,12 @@ export default function Leaderboard() {
 
   useEffect(() => {
     if (!seasonId) return;
-    api.get("/stats/leaderboard", { params: { season_id: seasonId } }).then((r) => setRows(r.data));
-  }, [seasonId]);
+    const params = { season_id: seasonId };
+    if (format !== "all") params.format = format;
+    api.get("/stats/leaderboard", { params }).then((r) => setRows(r.data));
+  }, [seasonId, format]);
+
+  const csvHref = `${process.env.REACT_APP_BACKEND_URL}/api/exports/leaderboard.csv?season_id=${seasonId}${format !== "all" ? `&format=${format}` : ""}`;
 
   return (
     <div className="space-y-6" data-testid="leaderboard-page">
@@ -39,17 +44,37 @@ export default function Leaderboard() {
           <h1 className="font-heading text-4xl sm:text-5xl font-black uppercase tracking-tight">Leaderboard</h1>
         </div>
         <div className="flex gap-2 items-end">
-          <a
-            href={`${process.env.REACT_APP_BACKEND_URL}/api/exports/leaderboard.csv${seasonId ? `?season_id=${seasonId}` : ""}`}
+          <a href={csvHref}
             className="btn-glow bg-cyan-400 hover:bg-cyan-300 text-black font-mono-hud font-bold uppercase tracking-wider text-xs px-4 py-2 rounded flex items-center gap-2"
-            data-testid="leaderboard-export-csv"
-          >
+            data-testid="leaderboard-export-csv">
             <Download className="w-3.5 h-3.5" strokeWidth={3} /> CSV
           </a>
           <select value={seasonId} onChange={(e) => setSeasonId(e.target.value)} className="bg-[#121828] border border-[#1B2438] rounded px-3 py-2 text-sm" data-testid="leaderboard-season">
             {seasons.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
+      </div>
+
+      <div className="flex gap-1 flex-wrap">
+        {[
+          { k: "all", label: "All Formats" },
+          { k: "1v1", label: "1v1" },
+          { k: "2v2", label: "2v2" },
+          { k: "3v3", label: "3v3" },
+        ].map((f) => (
+          <button
+            key={f.k}
+            onClick={() => setFormat(f.k)}
+            className={`px-4 py-2 font-mono-hud text-xs uppercase tracking-wider rounded border transition-colors ${
+              format === f.k
+                ? "bg-cyan-400 text-black border-cyan-400 font-bold"
+                : "bg-[#121828] border-[#1B2438] text-slate-300 hover:border-cyan-400/40"
+            }`}
+            data-testid={`leaderboard-format-${f.k}`}
+          >
+            {f.label}
+          </button>
+        ))}
       </div>
 
       {rows.length === 0 ? (
