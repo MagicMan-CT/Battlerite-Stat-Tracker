@@ -123,16 +123,6 @@ export default function Login() {
             {loading ? (isLogin ? "Authenticating..." : "Creating...") : (isLogin ? "Initiate Session" : "Create Account")}
           </button>
         </form>
-
-        {isLogin && (
-          <div className="mt-6 pt-4 border-t border-[#1B2438]">
-            <div className="text-[10px] font-mono-hud text-slate-500 uppercase tracking-[0.2em] mb-2">Admin Demo</div>
-            <div className="font-mono-hud text-xs text-slate-400 space-y-1">
-              <div>admin@arenaops.gg</div>
-              <div>admin123</div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
