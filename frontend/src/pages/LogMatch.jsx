@@ -41,6 +41,12 @@ export default function LogMatch() {
 
   const getChampRole = (name) => champions.find((c) => c.name === name)?.role || "";
 
+  // Players already picked anywhere in the match
+  const usedPlayers = new Set([...teamA, ...teamB].map((s) => s.player_id).filter(Boolean));
+  // Champions already picked per team (same-team mirror forbidden)
+  const usedChampsA = new Set(teamA.map((s) => s.champion).filter(Boolean));
+  const usedChampsB = new Set(teamB.map((s) => s.champion).filter(Boolean));
+
   const setSlot = (team, idx, key, val) => {
     const setter = team === "A" ? setTeamA : setTeamB;
     const arr = team === "A" ? [...teamA] : [...teamB];
@@ -54,6 +60,12 @@ export default function LogMatch() {
     const allSlots = [...teamA.map((s, i) => ({ ...s, team: "A" })), ...teamB.map((s, i) => ({ ...s, team: "B" }))];
     for (const s of allSlots) {
       if (!s.player_id || !s.champion) { toast.error("Fill all player/champion slots"); return; }
+    }
+    const pids = allSlots.map((s) => s.player_id);
+    if (new Set(pids).size !== pids.length) { toast.error("A player can only appear once per match"); return; }
+    for (const label of ["A", "B"]) {
+      const champs = allSlots.filter((s) => s.team === label).map((s) => s.champion);
+      if (new Set(champs).size !== champs.length) { toast.error(`Team ${label} cannot pick the same champion twice`); return; }
     }
     setSubmitting(true);
     try {
@@ -95,7 +107,7 @@ export default function LogMatch() {
               data-testid={`slot-player-${side}-${i}`}
             >
               <option value="">Select player…</option>
-              {players.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              {players.map((p) => <option key={p.id} value={p.id} disabled={p.id !== slot.player_id && usedPlayers.has(p.id)}>{p.name}{p.id !== slot.player_id && usedPlayers.has(p.id) ? " (already picked)" : ""}</option>)}
             </select>
             <select
               value={slot.champion}
@@ -104,7 +116,11 @@ export default function LogMatch() {
               data-testid={`slot-champion-${side}-${i}`}
             >
               <option value="">Champion…</option>
-              {champions.map((c) => <option key={c.name} value={c.name}>{c.name} ({c.role})</option>)}
+              {champions.map((c) => {
+                const teamChamps = side === "A" ? usedChampsA : usedChampsB;
+                const dup = c.name !== slot.champion && teamChamps.has(c.name);
+                return <option key={c.name} value={c.name} disabled={dup}>{c.name} ({c.role}){dup ? " · already in team" : ""}</option>;
+              })}
             </select>
             {slot.champion && (
               <span className={`inline-flex items-center px-2 py-0.5 text-[10px] font-mono-hud uppercase tracking-wider border rounded col-span-full sm:col-span-1 justify-self-start ${roleClass(getChampRole(slot.champion))}`}>

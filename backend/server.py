@@ -418,6 +418,15 @@ async def create_match(data: MatchCreate, user: dict = Depends(get_current_user)
         raise HTTPException(400, f"Expected {expected} players per team for {data.format}")
     if data.team_a_rounds == data.team_b_rounds:
         raise HTTPException(400, "Rounds cannot be tied")
+    # No duplicate players across the whole match
+    pids = [p.player_id for p in data.players]
+    if len(set(pids)) != len(pids):
+        raise HTTPException(400, "A player can only appear once per match")
+    # No duplicate champions within the same team
+    for team_label, team in [("A", team_a), ("B", team_b)]:
+        champs = [p.champion for p in team]
+        if len(set(champs)) != len(champs):
+            raise HTTPException(400, f"Team {team_label} cannot pick the same champion twice")
 
     season = await db.seasons.find_one({"id": data.season_id})
     if not season:
@@ -484,6 +493,13 @@ async def update_match(mid: str, data: MatchCreate, user: dict = Depends(get_cur
         raise HTTPException(400, f"Expected {expected} players per team for {data.format}")
     if data.team_a_rounds == data.team_b_rounds:
         raise HTTPException(400, "Rounds cannot be tied")
+    pids = [p.player_id for p in data.players]
+    if len(set(pids)) != len(pids):
+        raise HTTPException(400, "A player can only appear once per match")
+    for team_label, team in [("A", team_a), ("B", team_b)]:
+        champs = [p.champion for p in team]
+        if len(set(champs)) != len(champs):
+            raise HTTPException(400, f"Team {team_label} cannot pick the same champion twice")
 
     await db.matches.update_one({"id": mid}, {"$set": {
         "season_id": data.season_id,
