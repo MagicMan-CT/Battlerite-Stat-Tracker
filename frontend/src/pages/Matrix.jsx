@@ -6,6 +6,7 @@ export default function Matrix() {
   const [data, setData] = useState(null);
   const [seasons, setSeasons] = useState([]);
   const [seasonId, setSeasonId] = useState("");
+  const [highlight, setHighlight] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -47,25 +48,46 @@ export default function Matrix() {
         <div className="hud-card p-12 text-center text-slate-500 font-mono-hud">No player data.</div>
       ) : (
         <div className="hud-card p-4 overflow-x-auto">
+          {highlight && (
+            <div className="mb-3 flex items-center gap-2 text-xs font-mono-hud">
+              <span className="text-slate-400 uppercase tracking-wider">Highlighted:</span>
+              <span className="text-cyan-400 font-bold">{data.players.find((p) => p.id === highlight)?.name}</span>
+              <button onClick={() => setHighlight(null)} className="text-slate-500 hover:text-[#FF2E55] underline" data-testid="matrix-clear-highlight">clear</button>
+            </div>
+          )}
           <table className="min-w-full text-xs font-mono-hud">
             <thead>
               <tr>
                 <th className="p-2 text-left text-cyan-400/80 uppercase tracking-wider sticky left-0 bg-[#0C101B] z-10">vs →</th>
                 {data.players.map((p) => (
-                  <th key={p.id} className="p-2 text-center text-cyan-400/80 uppercase tracking-wider min-w-[80px]">{p.name}</th>
+                  <th
+                    key={p.id}
+                    onClick={() => setHighlight(highlight === p.id ? null : p.id)}
+                    className={`p-2 text-center uppercase tracking-wider min-w-[80px] cursor-pointer select-none transition-colors ${highlight === p.id ? "bg-cyan-400/15 text-cyan-300" : "text-cyan-400/80 hover:bg-[#121828]"}`}
+                    data-testid={`matrix-col-header-${p.id}`}
+                  >
+                    {p.name}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {data.players.map((row) => (
-                <tr key={row.id}>
-                  <td className="p-2 font-bold text-slate-100 sticky left-0 bg-[#0C101B] z-10 border-r border-[#1B2438]">{row.name}</td>
+                <tr key={row.id} className={highlight === row.id ? "bg-cyan-400/10" : ""}>
+                  <td
+                    onClick={() => setHighlight(highlight === row.id ? null : row.id)}
+                    className={`p-2 font-bold sticky left-0 z-10 border-r border-[#1B2438] cursor-pointer select-none transition-colors ${highlight === row.id ? "bg-cyan-400/15 text-cyan-300" : "bg-[#0C101B] text-slate-100 hover:bg-[#121828]"}`}
+                    data-testid={`matrix-row-header-${row.id}`}
+                  >
+                    {row.name}
+                  </td>
                   {data.players.map((col) => {
                     if (row.id === col.id) return <td key={col.id} className="p-2 text-center text-slate-700">—</td>;
                     const cell = data.matrix[row.id]?.[col.id] || { matches: 0, wins: 0 };
                     const wr = cell.matches ? Math.round((cell.wins / cell.matches) * 100) : 0;
+                    const dim = highlight && highlight !== row.id && highlight !== col.id ? "opacity-30" : "";
                     return (
-                      <td key={col.id} className={`p-2 text-center ${cellColor(wr, cell.matches)}`} data-testid={`matrix-cell-${row.id}-${col.id}`}>
+                      <td key={col.id} className={`p-2 text-center ${cellColor(wr, cell.matches)} ${dim}`} data-testid={`matrix-cell-${row.id}-${col.id}`}>
                         {cell.matches === 0 ? (
                           <span className="text-slate-600">—</span>
                         ) : (

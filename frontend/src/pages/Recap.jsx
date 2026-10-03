@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import api from "@/api";
 import ChampionPortrait from "@/components/ChampionPortrait";
-import { Trophy, Flame, Zap, Printer, TrendingUp, TrendingDown } from "lucide-react";
+import { Trophy, Flame, Zap, Printer, TrendingUp, TrendingDown, Info } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export default function Recap() {
   const [data, setData] = useState(null);
@@ -76,7 +77,28 @@ export default function Recap() {
           </div>
 
           <div className="hud-card p-5 print:border print:border-black">
-            <h2 className="font-heading text-xl font-black uppercase mb-4 flex items-center gap-2"><Zap className="w-5 h-5 text-[#FFB800]" /> Biggest Upsets</h2>
+            <div className="flex items-start justify-between mb-4">
+              <h2 className="font-heading text-xl font-black uppercase flex items-center gap-2"><Zap className="w-5 h-5 text-[#FFB800]" /> Biggest Upsets</h2>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button type="button" className="text-slate-500 hover:text-cyan-400 p-1 print:hidden" data-testid="upset-info-btn" aria-label="How upsets are ranked">
+                    <Info className="w-4 h-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-72 bg-[#0C101B] border-[#1B2438] text-slate-100 p-4" data-testid="upset-info-panel">
+                  <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-cyan-400/80 mb-2">// Upset score</div>
+                  <p className="text-xs text-slate-300 font-mono-hud leading-relaxed">
+                    Each upset is scored as:
+                  </p>
+                  <code className="block my-2 text-[11px] font-mono-hud text-[#FFB800] bg-[#121828] p-2 rounded border border-[#1B2438]">
+                    mmr_gap + round_margin × 20
+                  </code>
+                  <p className="text-[11px] text-slate-400 font-mono-hud leading-relaxed">
+                    <strong className="text-slate-200">MMR gap</strong> is how much lower-rated the winners were on average before the match. <strong className="text-slate-200">Round margin</strong> is how convincingly they won (e.g. a 5–0 counts for more than a 5–4). The top 5 by this score are shown.
+                  </p>
+                </PopoverContent>
+              </Popover>
+            </div>
             {data.biggest_upsets.length === 0 ? (
               <div className="text-slate-500 text-sm">No notable upsets in period.</div>
             ) : (
@@ -85,17 +107,29 @@ export default function Recap() {
                   <div key={u.match_id} className="p-3 bg-[#121828]/60 border border-[#1B2438] rounded" data-testid={`recap-upset-${u.match_id}`}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-[10px] font-mono-hud uppercase tracking-wider text-slate-500">{u.format} · {new Date(u.played_at).toLocaleDateString()}</span>
-                      <span className="font-mono-hud text-xs text-[#FFB800] font-bold">−{u.mmr_gap} MMR gap</span>
+                      <span className="font-mono-hud text-xs text-[#FFB800] font-bold" data-testid={`upset-gap-${u.match_id}`}>{Math.abs(u.mmr_gap)} MMR gap</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <div className="text-[10px] font-mono-hud uppercase text-[#00E676]">Winners</div>
-                        <div className="text-sm font-medium">{u.winners.join(" · ")}</div>
-                      </div>
-                      <div className="font-mono-hud text-lg font-black text-[#00E676] px-2">{u.score}</div>
-                      <div className="flex-1 text-right">
                         <div className="text-[10px] font-mono-hud uppercase text-[#FF2E55]">Fell</div>
                         <div className="text-sm text-slate-400">{u.losers.join(" · ")}</div>
+                      </div>
+                      <div className="font-mono-hud text-lg font-black px-2" data-testid={`upset-score-${u.match_id}`}>
+                        {(() => {
+                          const [a, b] = u.score.split("-").map(Number);
+                          const [loser, winner] = a > b ? [b, a] : [a, b];
+                          return (
+                            <>
+                              <span className="text-slate-400">{loser}</span>
+                              <span className="text-slate-600 mx-1">–</span>
+                              <span className="text-[#00E676]">{winner}</span>
+                            </>
+                          );
+                        })()}
+                      </div>
+                      <div className="flex-1 text-right">
+                        <div className="text-[10px] font-mono-hud uppercase text-[#00E676]">Winners</div>
+                        <div className="text-sm font-medium">{u.winners.join(" · ")}</div>
                       </div>
                     </div>
                   </div>

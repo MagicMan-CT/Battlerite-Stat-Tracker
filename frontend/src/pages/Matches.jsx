@@ -75,7 +75,7 @@ export default function Matches() {
         </select>
         <div className="flex items-center gap-2 flex-1 min-w-[200px]">
           <Search className="w-4 h-4 text-cyan-400" />
-          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search notes or champion..."
+          <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search players, notes or champions..."
             className="flex-1 bg-[#121828] border border-[#1B2438] focus:border-cyan-400 focus:outline-none rounded px-3 py-2 text-sm"
             data-testid="matches-search" />
         </div>
@@ -89,7 +89,9 @@ export default function Matches() {
             if (!search.trim()) return true;
             const q = search.trim().toLowerCase();
             if ((m.notes || "").toLowerCase().includes(q)) return true;
-            return m.players.some((p) => p.champion.toLowerCase().includes(q));
+            if (m.players.some((p) => p.champion.toLowerCase().includes(q))) return true;
+            if (m.players.some((p) => (playerName(p.player_id) || "").toLowerCase().includes(q))) return true;
+            return false;
           }).map((m) => {
             const teamA = m.players.filter((p) => p.team === "A");
             const teamB = m.players.filter((p) => p.team === "B");

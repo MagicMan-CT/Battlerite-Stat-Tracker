@@ -4,19 +4,9 @@ import api from "@/api";
 import { Trophy, TrendingUp, Download, Info } from "lucide-react";
 import StreakBadge from "@/components/StreakBadge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TIERS, tierFor } from "@/lib/tiers";
 
-const TIERS = [
-  { name: "Grandmaster", min: 1600, max: null, color: "text-[#FF2E55]", border: "border-[#FF2E55]", desc: "Legendary tier. The ceiling of competitive play." },
-  { name: "Champion", min: 1450, max: 1599, color: "text-[#FFB800]", border: "border-[#FFB800]", desc: "Top-tier mains with proven consistency." },
-  { name: "Diamond", min: 1300, max: 1449, color: "text-cyan-400", border: "border-cyan-400", desc: "Advanced players — well above average." },
-  { name: "Gold", min: 1150, max: 1299, color: "text-yellow-400", border: "border-yellow-400", desc: "Solid competitive players climbing the ladder." },
-  { name: "Silver", min: 0, max: 1149, color: "text-slate-400", border: "border-slate-400", desc: "Entry-tier players. Everyone starts here at 1200 MMR." },
-];
-
-const tier = (mmr) => {
-  const t = TIERS.find((x) => mmr >= x.min && (x.max === null || mmr <= x.max));
-  return t || TIERS[TIERS.length - 1];
-};
+const tier = tierFor;
 
 export default function Leaderboard() {
   const [rows, setRows] = useState([]);

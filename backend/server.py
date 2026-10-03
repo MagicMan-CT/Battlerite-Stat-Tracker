@@ -158,7 +158,7 @@ def expected_score(rating_a: float, rating_b: float) -> float:
 
 def compute_elo_delta(team_a_mmr: float, team_b_mmr: float,
                      team_a_rounds: int, team_b_rounds: int) -> float:
-    """Returns the ELO change for team A. Team B gets the negative."""
+    """Legacy helper: returns team-level ELO change for team A."""
     if team_a_rounds == team_b_rounds:
         return 0.0
     actual_a = 1.0 if team_a_rounds > team_b_rounds else 0.0
@@ -166,8 +166,43 @@ def compute_elo_delta(team_a_mmr: float, team_b_mmr: float,
     round_diff = abs(team_a_rounds - team_b_rounds)
     max_rounds = max(team_a_rounds, team_b_rounds)
     multiplier = 1.0 + (round_diff / max_rounds if max_rounds else 0)
-    delta = K_FACTOR * (actual_a - exp_a) * multiplier
-    return delta
+    return K_FACTOR * (actual_a - exp_a) * multiplier
+
+
+def compute_player_deltas(team_a_mmrs: dict, team_b_mmrs: dict,
+                          team_a_rounds: int, team_b_rounds: int) -> dict:
+    """Compute per-player ELO deltas, preserving zero-sum across the match.
+
+    Within the winning team the weaker player gains a larger share (bigger upset for them),
+    within the losing team the stronger player loses a larger share. Returns
+    {player_id: delta} for every player in both teams.
+    """
+    out = {}
+    if not team_a_mmrs or not team_b_mmrs:
+        return out
+    if team_a_rounds == team_b_rounds:
+        return {pid: 0.0 for pid in list(team_a_mmrs) + list(team_b_mmrs)}
+
+    avg_a = sum(team_a_mmrs.values()) / len(team_a_mmrs)
+    avg_b = sum(team_b_mmrs.values()) / len(team_b_mmrs)
+    a_won = team_a_rounds > team_b_rounds
+    round_diff = abs(team_a_rounds - team_b_rounds)
+    max_rounds = max(team_a_rounds, team_b_rounds)
+    multiplier = 1.0 + (round_diff / max_rounds if max_rounds else 0)
+
+    team_delta_a = K_FACTOR * ((1.0 if a_won else 0.0) - expected_score(avg_a, avg_b)) * multiplier
+
+    def distribute(team_delta: float, team_mmrs: dict, opp_avg: float, won: bool) -> dict:
+        if won:
+            weights = {pid: max(0.1, 1.0 - expected_score(mmr, opp_avg)) for pid, mmr in team_mmrs.items()}
+        else:
+            weights = {pid: max(0.1, expected_score(mmr, opp_avg)) for pid, mmr in team_mmrs.items()}
+        total = sum(weights.values()) or 1.0
+        return {pid: team_delta * (w / total) for pid, w in weights.items()}
+
+    out.update(distribute(team_delta_a, team_a_mmrs, avg_b, a_won))
+    out.update(distribute(-team_delta_a, team_b_mmrs, avg_a, not a_won))
+    return out
 
 
 # --------- Startup ---------
@@ -406,18 +441,20 @@ async def recompute_season_elo(season_id: str):
         team_b = [p for p in m["players"] if p["team"] == "B"]
         if not team_a or not team_b:
             continue
-        ta_mmr = sum(player_mmr.get(p["player_id"], BASE_MMR) for p in team_a) / len(team_a)
-        tb_mmr = sum(player_mmr.get(p["player_id"], BASE_MMR) for p in team_b) / len(team_b)
-        delta_a = compute_elo_delta(ta_mmr, tb_mmr, m["team_a_rounds"], m["team_b_rounds"])
+        ta_mmrs = {p["player_id"]: player_mmr.get(p["player_id"], BASE_MMR) for p in team_a}
+        tb_mmrs = {p["player_id"]: player_mmr.get(p["player_id"], BASE_MMR) for p in team_b}
+        deltas = compute_player_deltas(ta_mmrs, tb_mmrs, m["team_a_rounds"], m["team_b_rounds"])
         new_players = []
         for p in m["players"]:
-            d = delta_a if p["team"] == "A" else -delta_a
+            d = deltas.get(p["player_id"], 0.0)
             new_players.append({**p, "elo_delta": round(d, 2)})
             player_mmr[p["player_id"]] = player_mmr.get(p["player_id"], BASE_MMR) + d
+        ta_avg = sum(ta_mmrs.values()) / len(ta_mmrs)
+        tb_avg = sum(tb_mmrs.values()) / len(tb_mmrs)
         await db.matches.update_one({"id": m["id"]}, {"$set": {
             "players": new_players,
-            "team_a_mmr_before": round(ta_mmr, 2),
-            "team_b_mmr_before": round(tb_mmr, 2),
+            "team_a_mmr_before": round(ta_avg, 2),
+            "team_b_mmr_before": round(tb_avg, 2),
             "winner_team": "A" if m["team_a_rounds"] > m["team_b_rounds"] else "B",
         }})
 
@@ -468,18 +505,19 @@ async def create_match(data: MatchCreate, user: dict = Depends(admin_required)):
     if not season:
         raise HTTPException(404, "Season not found")
 
-    # Compute team MMRs before this match
     team_a_ids = [p.player_id for p in team_a]
     team_b_ids = [p.player_id for p in team_b]
-    team_a_mmr = await _team_mmr(team_a_ids, data.season_id)
-    team_b_mmr = await _team_mmr(team_b_ids, data.season_id)
 
-    delta_a = compute_elo_delta(team_a_mmr, team_b_mmr, data.team_a_rounds, data.team_b_rounds)
-    delta_b = -delta_a
+    # Compute per-player deltas (preserves zero-sum across the match)
+    ta_mmrs = {pid: await get_player_mmr(pid, data.season_id) for pid in team_a_ids}
+    tb_mmrs = {pid: await get_player_mmr(pid, data.season_id) for pid in team_b_ids}
+    team_a_mmr = sum(ta_mmrs.values()) / len(ta_mmrs)
+    team_b_mmr = sum(tb_mmrs.values()) / len(tb_mmrs)
+    deltas = compute_player_deltas(ta_mmrs, tb_mmrs, data.team_a_rounds, data.team_b_rounds)
 
     players_with_delta = []
     for p in data.players:
-        d = delta_a if p.team == "A" else delta_b
+        d = deltas.get(p.player_id, 0.0)
         players_with_delta.append({
             "player_id": p.player_id,
             "champion": p.champion,
@@ -515,6 +553,14 @@ async def list_matches(season_id: Optional[str] = None, player_id: Optional[str]
         q["players.player_id"] = player_id
     docs = await db.matches.find(q, {"_id": 0}).sort("played_at", -1).to_list(10000)
     return docs
+
+
+@api_router.post("/admin/recompute-all")
+async def recompute_all_seasons(user: dict = Depends(admin_required)):
+    seasons = await db.seasons.find({}, {"_id": 0}).to_list(1000)
+    for s in seasons:
+        await recompute_season_elo(s["id"])
+    return {"ok": True, "seasons": len(seasons)}
 
 
 @api_router.put("/matches/{mid}")
@@ -652,10 +698,30 @@ async def player_stats(pid: str, season_id: Optional[str] = None):
         q["season_id"] = season_id
     matches = await db.matches.find(q, {"_id": 0}).sort("played_at", -1).to_list(10000)
 
+    # Compute all-time peak across every season (even if filtering current view by one season)
+    all_seasons = await db.seasons.find({}, {"_id": 0}).to_list(1000)
+    season_names = {s["id"]: s["name"] for s in all_seasons}
+    peak_all_time = BASE_MMR
+    peak_season_id = None
+    for s in all_seasons:
+        s_matches = await db.matches.find(
+            {"season_id": s["id"], "players.player_id": pid}, {"_id": 0}
+        ).sort("played_at", 1).to_list(10000)
+        cur = BASE_MMR
+        local_peak = BASE_MMR
+        for sm in s_matches:
+            mp = next((p for p in sm["players"] if p["player_id"] == pid), None)
+            if mp:
+                cur += mp.get("elo_delta", 0)
+                local_peak = max(local_peak, cur)
+        if local_peak > peak_all_time:
+            peak_all_time = local_peak
+            peak_season_id = s["id"]
+
     champ_stats = {}  # champion -> wins/losses/matches
     role_stats = {"Melee": 0, "Ranged": 0, "Support": 0}
     role_wins = {"Melee": 0, "Ranged": 0, "Support": 0}
-    teammates = {}  # pid -> {name, wins, losses, matches}
+    teammates = {}
     opponents = {}
     total_wins = 0
     total_matches = len(matches)
@@ -745,6 +811,9 @@ async def player_stats(pid: str, season_id: Optional[str] = None):
         "winrate": round(total_wins / total_matches * 100, 1) if total_matches else 0,
         "mmr": round(mmr, 2),
         "peak_mmr": round(peak, 2),
+        "peak_mmr_all_time": round(peak_all_time, 2),
+        "peak_season_id": peak_season_id,
+        "peak_season_name": season_names.get(peak_season_id) if peak_season_id else None,
         "streak": streak,
         "champions": fav_champs,
         "roles": [

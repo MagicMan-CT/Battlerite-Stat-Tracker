@@ -5,6 +5,7 @@ import { Trophy, Swords, Flame, Users, TrendingUp } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import ChampionPortrait from "@/components/ChampionPortrait";
 import StreakBadge from "@/components/StreakBadge";
+import { tierFor } from "@/lib/tiers";
 
 const roleClass = (r) => r === "Melee" ? "role-bg-melee" : r === "Ranged" ? "role-bg-ranged" : "role-bg-support";
 
@@ -45,9 +46,30 @@ export default function PlayerProfile() {
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="hud-card hud-corner p-5">
-          <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-slate-400 mb-2">MMR</div>
-          <div className="font-mono-hud text-3xl font-black text-cyan-400">{Math.round(stats.mmr)}</div>
-          <div className="text-[10px] font-mono-hud text-slate-500 mt-1">Peak {Math.round(stats.peak_mmr)}</div>
+          <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-slate-400 mb-2">Current Rank · MMR</div>
+          <div className="font-mono-hud text-3xl font-black text-cyan-400" data-testid="profile-mmr">{Math.round(stats.mmr)}</div>
+          {(() => {
+            const t = tierFor(stats.mmr);
+            return <span className={`inline-block mt-2 text-[10px] font-mono-hud uppercase tracking-wider px-2 py-1 border rounded ${t.color} ${t.border}`} data-testid="profile-current-rank">{t.name}</span>;
+          })()}
+        </div>
+        <div className="hud-card hud-corner p-5">
+          <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-slate-400 mb-2">Peak Rank</div>
+          {(() => {
+            const peak = stats.peak_mmr_all_time ?? stats.peak_mmr;
+            const t = tierFor(peak);
+            return (
+              <>
+                <div className="flex items-baseline gap-2">
+                  <span className={`font-heading text-xl font-black ${t.color}`} data-testid="profile-peak-rank">{t.name}</span>
+                  <span className="font-mono-hud text-lg font-black text-slate-300" data-testid="profile-peak-mmr">{Math.round(peak)}</span>
+                </div>
+                {stats.peak_season_name && (
+                  <div className="text-[10px] font-mono-hud text-slate-500 mt-1" data-testid="profile-peak-season">in {stats.peak_season_name}</div>
+                )}
+              </>
+            );
+          })()}
         </div>
         <div className="hud-card hud-corner p-5">
           <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-slate-400 mb-2">Matches</div>
@@ -55,12 +77,9 @@ export default function PlayerProfile() {
           <div className="text-[10px] font-mono-hud text-slate-500 mt-1">{stats.total_wins}W · {stats.total_losses}L</div>
         </div>
         <div className="hud-card hud-corner p-5">
-          <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-slate-400 mb-2">Winrate</div>
-          <div className="font-mono-hud text-3xl font-black text-[#00E676]">{stats.winrate}%</div>
-        </div>
-        <div className="hud-card hud-corner p-5">
-          <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-slate-400 mb-2">Fav Champion</div>
-          <div className="font-heading text-xl font-black text-[#FFB800] truncate">{stats.champions[0]?.champion || "—"}</div>
+          <div className="text-xs font-mono-hud uppercase tracking-[0.2em] text-slate-400 mb-2">Winrate · Fav</div>
+          <div className="font-mono-hud text-2xl font-black text-[#00E676]">{stats.winrate}%</div>
+          <div className="font-heading text-sm font-black text-[#FFB800] truncate mt-1">{stats.champions[0]?.champion || "—"}</div>
         </div>
       </div>
 
