@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api from "@/api";
 import { toast } from "sonner";
 import { X, Save } from "lucide-react";
+import { invalidateChampionStats } from "@/lib/championStats";
 
 const roleClass = (r) => r === "Melee" ? "role-bg-melee" : r === "Ranged" ? "role-bg-ranged" : "role-bg-support";
 
@@ -62,6 +63,7 @@ export default function EditMatchDialog({ match, onClose, onSaved }) {
         team_a_rounds: Number(teamARounds), team_b_rounds: Number(teamBRounds),
         players: all.map((s) => ({ player_id: s.player_id, champion: s.champion, role: getChampRole(s.champion), team: s.team })),
       });
+      invalidateChampionStats();
       toast.success("Match updated · ELO recomputed");
       onSaved();
     } catch (err) {

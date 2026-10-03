@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import api from "@/api";
 import { toast } from "sonner";
 import { PlusCircle, Swords, Trash2 } from "lucide-react";
+import { invalidateChampionStats } from "@/lib/championStats";
 
 const roleClass = (r) => r === "Melee" ? "role-bg-melee" : r === "Ranged" ? "role-bg-ranged" : "role-bg-support";
 
@@ -83,6 +84,7 @@ export default function LogMatch() {
         })),
       };
       await api.post("/matches", payload);
+      invalidateChampionStats();
       toast.success("Match logged");
       // Reset
       applyFormat(format);
