@@ -10,7 +10,8 @@ export default function ChampionMatrix() {
   const [seasons, setSeasons] = useState([]);
   const [seasonId, setSeasonId] = useState("");
   const [minMatches, setMinMatches] = useState(1);
-  const [highlight, setHighlight] = useState(null);
+  const [rowHl, setRowHl] = useState(null);
+  const [colHl, setColHl] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -84,11 +85,11 @@ export default function ChampionMatrix() {
           </div>
 
           <div className="hud-card p-4 overflow-x-auto">
-            {highlight && (
-              <div className="mb-3 flex items-center gap-2 text-xs font-mono-hud">
-                <span className="text-slate-400 uppercase tracking-wider">Highlighted:</span>
-                <span className="text-cyan-400 font-bold">{highlight}</span>
-                <button onClick={() => setHighlight(null)} className="text-slate-500 hover:text-[#FF2E55] underline" data-testid="cm-clear-highlight">clear</button>
+            {(rowHl || colHl) && (
+              <div className="mb-3 flex items-center gap-3 text-xs font-mono-hud flex-wrap">
+                {rowHl && <span><span className="text-slate-400 uppercase tracking-wider">Row:</span> <span className="text-cyan-400 font-bold">{rowHl}</span></span>}
+                {colHl && <span><span className="text-slate-400 uppercase tracking-wider">Column:</span> <span className="text-[#FFB800] font-bold">{colHl}</span></span>}
+                <button onClick={() => { setRowHl(null); setColHl(null); }} className="text-slate-500 hover:text-[#FF2E55] underline" data-testid="cm-clear-highlight">clear</button>
               </div>
             )}
             <table className="min-w-full text-xs font-mono-hud">
@@ -97,8 +98,8 @@ export default function ChampionMatrix() {
                   <th className="p-2 text-left text-cyan-400/80 uppercase tracking-wider sticky left-0 bg-[#0C101B] z-10">vs →</th>
                   {data.champions.map((c) => (
                     <th key={c}
-                      onClick={() => setHighlight(highlight === c ? null : c)}
-                      className={`p-2 text-center uppercase tracking-wider min-w-[60px] whitespace-nowrap cursor-pointer select-none transition-colors ${highlight === c ? "bg-cyan-400/15 text-cyan-300" : "text-cyan-400/80 hover:bg-[#121828]"}`}
+                      onClick={() => setColHl(colHl === c ? null : c)}
+                      className={`p-2 text-center uppercase tracking-wider min-w-[60px] whitespace-nowrap cursor-pointer select-none transition-colors ${colHl === c ? "bg-[#FFB800]/15 text-[#FFB800]" : "text-cyan-400/80 hover:bg-[#121828]"}`}
                       data-testid={`cm-col-header-${c}`}
                     >{c}</th>
                   ))}
@@ -106,19 +107,24 @@ export default function ChampionMatrix() {
               </thead>
               <tbody>
                 {data.champions.map((row) => (
-                  <tr key={row} className={highlight === row ? "bg-cyan-400/10" : ""}>
+                  <tr key={row} className={rowHl === row ? "bg-cyan-400/10" : ""}>
                     <td
-                      onClick={() => setHighlight(highlight === row ? null : row)}
-                      className={`p-2 font-bold sticky left-0 z-10 border-r border-[#1B2438] whitespace-nowrap cursor-pointer select-none transition-colors ${highlight === row ? "bg-cyan-400/15 text-cyan-300" : "bg-[#0C101B] text-slate-100 hover:bg-[#121828]"}`}
+                      onClick={() => setRowHl(rowHl === row ? null : row)}
+                      className={`p-2 font-bold sticky left-0 z-10 border-r border-[#1B2438] whitespace-nowrap cursor-pointer select-none transition-colors ${rowHl === row ? "bg-cyan-400/15 text-cyan-300" : "bg-[#0C101B] text-slate-100 hover:bg-[#121828]"}`}
                       data-testid={`cm-row-header-${row}`}
                     >{row}</td>
                     {data.champions.map((col) => {
                       if (row === col) return <td key={col} className="p-2 text-center text-slate-700">—</td>;
                       const cell = data.matrix[row]?.[col] || { matches: 0, wins: 0 };
                       const wr = cell.matches ? Math.round((cell.wins / cell.matches) * 100) : 0;
-                      const dim = highlight && highlight !== row && highlight !== col ? "opacity-30" : "";
+                      const isRowHl = rowHl === row;
+                      const isColHl = colHl === col;
+                      const isIntersection = isRowHl && isColHl;
+                      const anyHl = rowHl || colHl;
+                      const dim = anyHl && !isRowHl && !isColHl ? "opacity-30" : "";
+                      const focus = isIntersection ? "ring-2 ring-cyan-400 ring-inset" : "";
                       return (
-                        <td key={col} className={`p-2 text-center ${cellColor(wr, cell.matches)} ${dim}`} data-testid={`cm-cell-${row}-${col}`}>
+                        <td key={col} className={`p-2 text-center ${cellColor(wr, cell.matches)} ${dim} ${focus}`} data-testid={`cm-cell-${row}-${col}`}>
                           {cell.matches < minMatches ? (
                             <span className="text-slate-700">—</span>
                           ) : (

@@ -111,8 +111,8 @@ export default function Recap() {
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="flex-1">
-                        <div className="text-[10px] font-mono-hud uppercase text-[#FF2E55]">Fell</div>
-                        <div className="text-sm text-slate-400">{u.losers.join(" · ")}</div>
+                        <div className="text-[10px] font-mono-hud uppercase text-[#00E676]">Winners</div>
+                        <div className="text-sm font-medium">{u.winners.join(" · ")}</div>
                       </div>
                       <div className="font-mono-hud text-lg font-black px-2" data-testid={`upset-score-${u.match_id}`}>
                         {(() => {
@@ -120,16 +120,16 @@ export default function Recap() {
                           const [loser, winner] = a > b ? [b, a] : [a, b];
                           return (
                             <>
-                              <span className="text-slate-400">{loser}</span>
-                              <span className="text-slate-600 mx-1">–</span>
                               <span className="text-[#00E676]">{winner}</span>
+                              <span className="text-slate-600 mx-1">–</span>
+                              <span className="text-slate-400">{loser}</span>
                             </>
                           );
                         })()}
                       </div>
                       <div className="flex-1 text-right">
-                        <div className="text-[10px] font-mono-hud uppercase text-[#00E676]">Winners</div>
-                        <div className="text-sm font-medium">{u.winners.join(" · ")}</div>
+                        <div className="text-[10px] font-mono-hud uppercase text-[#FF2E55]">Fell</div>
+                        <div className="text-sm text-slate-400">{u.losers.join(" · ")}</div>
                       </div>
                     </div>
                   </div>
