@@ -29,7 +29,7 @@ api_router = APIRouter(prefix="/api")
 
 # --------- Constants ---------
 JWT_ALGORITHM = "HS256"
-K_FACTOR = 32
+K_FACTOR = 24
 BASE_MMR = 1200
 
 CHAMPIONS = [
@@ -190,7 +190,9 @@ def compute_player_deltas(team_a_mmrs: dict, team_b_mmrs: dict,
     max_rounds = max(team_a_rounds, team_b_rounds)
     multiplier = 1.0 + (round_diff / max_rounds if max_rounds else 0)
 
-    team_delta_a = K_FACTOR * ((1.0 if a_won else 0.0) - expected_score(avg_a, avg_b)) * multiplier
+    # Scale by team size so each PLAYER gets a full K-sized adjustment (not team_size-divided)
+    team_size = len(team_a_mmrs)
+    team_delta_a = K_FACTOR * ((1.0 if a_won else 0.0) - expected_score(avg_a, avg_b)) * multiplier * team_size
 
     def distribute(team_delta: float, team_mmrs: dict, opp_avg: float, won: bool) -> dict:
         if won:
