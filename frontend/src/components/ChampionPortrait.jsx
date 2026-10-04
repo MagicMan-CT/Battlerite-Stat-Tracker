@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { getChampionStats } from "@/lib/championStats";
 
@@ -73,7 +74,7 @@ function PortraitVisual({ name, role, size, className, failed, onError }) {
   );
 }
 
-export default function ChampionPortrait({ name, role, size = 32, className = "", disableHover = false }) {
+export default function ChampionPortrait({ name, role, size = 32, className = "", disableHover = false, linkToProfile = true }) {
   const [failed, setFailed] = useState(false);
   const [stats, setStats] = useState(null);
   const [open, setOpen] = useState(false);
@@ -96,14 +97,23 @@ export default function ChampionPortrait({ name, role, size = 32, className = ""
     />
   );
 
-  if (disableHover) return visual;
+  // Wrap visual in a profile link when requested (default true).
+  // Keeps hover-card trigger intact by using asChild → Link below.
+  const Wrapper = linkToProfile ? Link : "span";
+  const wrapperProps = linkToProfile
+    ? { to: `/champions/${encodeURIComponent(name)}`, className: "inline-flex cursor-pointer" }
+    : { className: "inline-flex" };
+
+  if (disableHover) {
+    return <Wrapper {...wrapperProps}>{visual}</Wrapper>;
+  }
 
   const roleText = ROLE_TEXT[role] || "text-slate-300";
 
   return (
     <HoverCard openDelay={150} closeDelay={100} onOpenChange={setOpen}>
       <HoverCardTrigger asChild>
-        <span className="inline-flex cursor-help">{visual}</span>
+        <Wrapper {...wrapperProps}>{visual}</Wrapper>
       </HoverCardTrigger>
       <HoverCardContent
         side="top" align="center"

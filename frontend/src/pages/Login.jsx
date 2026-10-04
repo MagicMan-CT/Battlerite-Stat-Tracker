@@ -101,7 +101,6 @@ export default function Login() {
           <Eye className="w-4 h-4 group-hover:scale-110 transition-transform" strokeWidth={2.5} />
           Show Me The Stats!
         </button>
-        <p className="text-[10px] font-mono-hud text-slate-500 text-center mt-2 uppercase tracking-[0.15em]">Read-only · no account needed</p>
       </div>
     </div>
   );

@@ -72,7 +72,7 @@ export default function ChampionMatrix() {
                   data-testid={`cm-total-${c.champion}`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
-                    <ChampionPortrait name={c.champion} role={c.role} size={28} disableHover />
+                    <ChampionPortrait name={c.champion} role={c.role} size={28} disableHover linkToProfile={false} />
                     <span className="font-medium text-sm truncate">{c.champion}</span>
                   </div>
                   <div className="text-right flex-shrink-0 ml-2">

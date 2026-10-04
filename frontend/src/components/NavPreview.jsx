@@ -135,7 +135,7 @@ function ChampionsPreview({ cache }) {
     const roster = (cache.champions || []).slice(0, 6);
     return (
       <div className="flex gap-1.5 flex-wrap">
-        {roster.map((c) => <ChampionPortrait key={c.name} name={c.name} role={c.role} size={28} disableHover />)}
+        {roster.map((c) => <ChampionPortrait key={c.name} name={c.name} role={c.role} size={28} disableHover linkToProfile={false} />)}
       </div>
     );
   }
@@ -143,7 +143,7 @@ function ChampionsPreview({ cache }) {
     <div className="flex gap-1.5 flex-wrap">
       {totals.map((c) => (
         <div key={c.champion} className="flex flex-col items-center gap-0.5">
-          <ChampionPortrait name={c.champion} role={c.role} size={28} disableHover />
+          <ChampionPortrait name={c.champion} role={c.role} size={28} disableHover linkToProfile={false} />
           <span className={`text-[9px] font-mono-hud font-bold ${c.winrate >= 50 ? "text-[#00E676]" : "text-[#FF2E55]"}`}>{c.winrate}%</span>
         </div>
       ))}
@@ -216,19 +216,6 @@ const PREVIEWS = {
   "/seasons": SeasonsPreview,
 };
 
-const DESCRIPTIONS = {
-  "/": "Live arena stats",
-  "/matches": "Full match history",
-  "/log": "Record a new match",
-  "/leaderboard": "ELO ranking by tier",
-  "/players": "Roster & profiles",
-  "/matrix": "Player vs player grid",
-  "/champions": "Champion winrates",
-  "/matchmaking": "Balanced lobby creator",
-  "/recap": "Last 7-day digest",
-  "/seasons": "Season management",
-};
-
 export default function NavPreview({ to, label, children }) {
   const Preview = PREVIEWS[to];
   const { cache } = useDataCache() || { cache: {} };
@@ -247,7 +234,6 @@ export default function NavPreview({ to, label, children }) {
           <div className="font-heading text-sm font-black uppercase tracking-tight text-cyan-400">{label}</div>
           <div className="text-[9px] font-mono-hud uppercase tracking-[0.15em] text-slate-500">peek</div>
         </div>
-        <div className="text-[10px] font-mono-hud text-slate-400 mb-3">{DESCRIPTIONS[to]}</div>
         {Preview ? <Preview cache={cache} /> : null}
       </HoverCardContent>
     </HoverCard>

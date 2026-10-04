@@ -49,7 +49,7 @@ export default function ChampionProfile() {
         <div>
           <div className="text-xs font-mono-hud uppercase tracking-[0.3em] text-cyan-400/70 mb-2">// Champion Dossier</div>
           <div className="flex items-center gap-4">
-            <ChampionPortrait name={stats.champion} role={stats.role} size={72} disableHover />
+            <ChampionPortrait name={stats.champion} role={stats.role} size={72} disableHover linkToProfile={false} />
             <div>
               <h1 className="font-heading text-4xl sm:text-5xl font-black uppercase tracking-tight leading-none">{stats.champion}</h1>
               <span className={`inline-block mt-2 text-[10px] font-mono-hud uppercase tracking-wider px-2 py-1 border rounded ${accent.text} ${accent.border} ${accent.bg}`} data-testid="champion-role-badge">{stats.role}</span>
@@ -128,7 +128,7 @@ export default function ChampionProfile() {
                   data-testid={`champion-teammate-${c.champion}`}
                 >
                   <div className="flex items-center gap-2">
-                    <ChampionPortrait name={c.champion} role={c.role} size={28} disableHover />
+                    <ChampionPortrait name={c.champion} role={c.role} size={28} disableHover linkToProfile={false} />
                     <span className="font-medium">{c.champion}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs font-mono-hud">
@@ -153,7 +153,7 @@ export default function ChampionProfile() {
                   data-testid={`champion-opponent-${c.champion}`}
                 >
                   <div className="flex items-center gap-2">
-                    <ChampionPortrait name={c.champion} role={c.role} size={28} disableHover />
+                    <ChampionPortrait name={c.champion} role={c.role} size={28} disableHover linkToProfile={false} />
                     <span className="font-medium">{c.champion}</span>
                   </div>
                   <div className="flex items-center gap-3 text-xs font-mono-hud">
