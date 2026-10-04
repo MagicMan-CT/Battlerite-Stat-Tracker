@@ -17,12 +17,57 @@ function Stat({ label, value, icon: Icon, accent = "cyan" }) {
   );
 }
 
+function RivalrySpotlight({ rivalry }) {
+  if (!rivalry) return null;
+  const total = rivalry.matches;
+  const aPct = total ? (rivalry.a_wins / total) * 100 : 50;
+  const bPct = 100 - aPct;
+  const leaderA = rivalry.a_wins > rivalry.b_wins;
+  const leaderB = rivalry.b_wins > rivalry.a_wins;
+  return (
+    <div className="hud-card hud-corner p-5 relative overflow-hidden border-[#FF2E55]/50 bg-[#FF2E55]/5" data-testid="dashboard-rivalry">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Swords className="w-4 h-4 text-[#FF2E55]" />
+          <h2 className="font-heading text-xl font-bold uppercase tracking-wide">Main Event Rivalry</h2>
+        </div>
+        <Link to="/recap" className="text-xs font-mono-hud uppercase text-cyan-400 hover:text-cyan-300">All bouts →</Link>
+      </div>
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+        <div className="text-right min-w-0">
+          <Link to={`/players/${rivalry.player_a_id}`} className={`font-heading text-xl md:text-2xl font-black uppercase tracking-tight hover:text-cyan-400 block truncate ${leaderA ? "text-[#00E676]" : leaderB ? "text-slate-400" : "text-slate-100"}`} data-testid="dashboard-rivalry-a">
+            {rivalry.player_a_name}
+          </Link>
+          <div className="font-mono-hud text-xs text-slate-500">{rivalry.a_wins} wins</div>
+        </div>
+        <div className="flex flex-col items-center">
+          <span className="font-heading text-3xl md:text-4xl font-black text-[#FFB800] font-mono-hud leading-none" data-testid="dashboard-rivalry-score">
+            {rivalry.a_wins}<span className="text-slate-600 mx-1.5">–</span>{rivalry.b_wins}
+          </span>
+          <span className="text-[9px] font-mono-hud uppercase tracking-[0.25em] text-slate-500 mt-1">{total} meetings</span>
+        </div>
+        <div className="text-left min-w-0">
+          <Link to={`/players/${rivalry.player_b_id}`} className={`font-heading text-xl md:text-2xl font-black uppercase tracking-tight hover:text-cyan-400 block truncate ${leaderB ? "text-[#00E676]" : leaderA ? "text-slate-400" : "text-slate-100"}`} data-testid="dashboard-rivalry-b">
+            {rivalry.player_b_name}
+          </Link>
+          <div className="font-mono-hud text-xs text-slate-500">{rivalry.b_wins} wins</div>
+        </div>
+      </div>
+      <div className="flex h-2 mt-4 rounded overflow-hidden bg-[#0C101B] border border-[#1B2438]">
+        <div className="bg-[#00F0FF]/70" style={{ width: `${aPct}%` }} />
+        <div className="bg-[#FF2E55]/70" style={{ width: `${bPct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const [seasons, setSeasons] = useState([]);
   const [activeSeason, setActiveSeason] = useState(null);
   const [leaderboard, setLeaderboard] = useState([]);
   const [matches, setMatches] = useState([]);
   const [players, setPlayers] = useState([]);
+  const [rivalry, setRivalry] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -30,14 +75,16 @@ export default function Dashboard() {
       setSeasons(s.data);
       const active = s.data.find((x) => x.active) || s.data[0];
       setActiveSeason(active);
-      const [lb, mm, pp] = await Promise.all([
+      const [lb, mm, pp, recap] = await Promise.all([
         api.get("/stats/leaderboard", { params: { season_id: active?.id } }),
         api.get("/matches", { params: { season_id: active?.id } }),
         api.get("/players"),
+        api.get("/stats/recap", { params: { days: 90, season_id: active?.id } }),
       ]);
       setLeaderboard(lb.data);
       setMatches(mm.data);
       setPlayers(pp.data);
+      setRivalry(recap.data?.rivalries?.[0] || null);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -60,6 +107,8 @@ export default function Dashboard() {
         <Stat label="Active Players" value={players.length} icon={Users} accent="emerald" />
         <Stat label="Top ELO" value={topPlayer ? Math.round(topPlayer.mmr) : "—"} icon={Trophy} accent="crimson" />
       </div>
+
+      {rivalry && <RivalrySpotlight rivalry={rivalry} />}
 
       {activeSeason?.end_date && (
         <SeasonCountdown endDate={activeSeason.end_date} seasonName={activeSeason.name} />

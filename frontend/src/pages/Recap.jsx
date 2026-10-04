@@ -138,7 +138,7 @@ export default function Recap() {
             )}
           </div>
 
-          <div className="hud-card p-5 lg:col-span-2 print:border print:border-black" data-testid="recap-rivalries">
+          <div className="hud-card p-5 print:border print:border-black" data-testid="recap-rivalries">
             <h2 className="font-heading text-xl font-black uppercase mb-4 flex items-center gap-2"><Swords className="w-5 h-5 text-[#FF2E55]" /> Rivalry Spotlight</h2>
             {!data.rivalries || data.rivalries.length === 0 ? (
               <div className="text-slate-500 text-sm">No recurring head-to-heads in this period. Play more matches to see rivalries ignite.</div>
@@ -152,42 +152,38 @@ export default function Recap() {
                   const leaderB = r.b_wins > r.a_wins;
                   const heatBand = idx === 0 ? "border-[#FF2E55]/60 bg-[#FF2E55]/5" : "border-[#1B2438]";
                   return (
-                    <div key={`${r.player_a_id}-${r.player_b_id}`} className={`p-4 bg-[#121828]/60 border rounded ${heatBand}`} data-testid={`recap-rivalry-${idx}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] font-mono-hud uppercase tracking-[0.2em] text-slate-500">
+                    <div key={`${r.player_a_id}-${r.player_b_id}`} className={`p-3 bg-[#121828]/60 border rounded ${heatBand}`} data-testid={`recap-rivalry-${idx}`}>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <span className="text-[9px] font-mono-hud uppercase tracking-[0.2em] text-slate-500">
                           {idx === 0 ? <span className="text-[#FF2E55]">// Main Event</span> : `// Bout #${idx + 1}`}
                         </span>
-                        <span className="font-mono-hud text-[11px] uppercase tracking-wider text-slate-400" data-testid={`rivalry-matches-${idx}`}>
-                          {total} meetings · heat {r.heat_score}
+                        <span className="font-mono-hud text-[10px] uppercase tracking-wider text-slate-400" data-testid={`rivalry-matches-${idx}`}>
+                          {total}m · heat {r.heat_score}
                         </span>
                       </div>
-                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-                        <div className="text-right">
-                          <Link to={`/players/${r.player_a_id}`} className={`font-heading text-lg md:text-xl font-black uppercase tracking-tight hover:text-cyan-400 ${leaderA ? "text-[#00E676]" : leaderB ? "text-slate-400" : "text-slate-100"}`} data-testid={`rivalry-a-${idx}`}>
+                      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                        <div className="text-right min-w-0">
+                          <Link to={`/players/${r.player_a_id}`} className={`font-heading text-sm font-black uppercase tracking-tight hover:text-cyan-400 block truncate ${leaderA ? "text-[#00E676]" : leaderB ? "text-slate-400" : "text-slate-100"}`} data-testid={`rivalry-a-${idx}`}>
                             {r.player_a_name}
                           </Link>
-                          <div className="font-mono-hud text-xs text-slate-500">{r.a_wins}W</div>
+                          <div className="font-mono-hud text-[10px] text-slate-500">{r.a_wins}W</div>
                         </div>
                         <div className="flex flex-col items-center">
-                          <span className="font-heading text-2xl md:text-3xl font-black text-[#FFB800] font-mono-hud leading-none" data-testid={`rivalry-score-${idx}`}>
-                            {r.a_wins}<span className="text-slate-600 mx-1.5">–</span>{r.b_wins}
+                          <span className="font-heading text-xl font-black text-[#FFB800] font-mono-hud leading-none" data-testid={`rivalry-score-${idx}`}>
+                            {r.a_wins}<span className="text-slate-600 mx-1">–</span>{r.b_wins}
                           </span>
-                          <span className="text-[9px] font-mono-hud uppercase tracking-[0.2em] text-slate-500 mt-1">H2H</span>
+                          <span className="text-[8px] font-mono-hud uppercase tracking-[0.2em] text-slate-500 mt-0.5">H2H</span>
                         </div>
-                        <div className="text-left">
-                          <Link to={`/players/${r.player_b_id}`} className={`font-heading text-lg md:text-xl font-black uppercase tracking-tight hover:text-cyan-400 ${leaderB ? "text-[#00E676]" : leaderA ? "text-slate-400" : "text-slate-100"}`} data-testid={`rivalry-b-${idx}`}>
+                        <div className="text-left min-w-0">
+                          <Link to={`/players/${r.player_b_id}`} className={`font-heading text-sm font-black uppercase tracking-tight hover:text-cyan-400 block truncate ${leaderB ? "text-[#00E676]" : leaderA ? "text-slate-400" : "text-slate-100"}`} data-testid={`rivalry-b-${idx}`}>
                             {r.player_b_name}
                           </Link>
-                          <div className="font-mono-hud text-xs text-slate-500">{r.b_wins}W</div>
+                          <div className="font-mono-hud text-[10px] text-slate-500">{r.b_wins}W</div>
                         </div>
                       </div>
-                      <div className="flex h-1.5 mt-3 rounded overflow-hidden bg-[#0C101B] border border-[#1B2438]">
+                      <div className="flex h-1.5 mt-2 rounded overflow-hidden bg-[#0C101B] border border-[#1B2438]">
                         <div className="bg-[#00F0FF]/70" style={{ width: `${aPct}%` }} />
                         <div className="bg-[#FF2E55]/70" style={{ width: `${bPct}%` }} />
-                      </div>
-                      <div className="flex justify-between mt-1 text-[9px] font-mono-hud text-slate-500">
-                        <span>{Math.round(aPct)}%</span>
-                        <span>{Math.round(bPct)}%</span>
                       </div>
                     </div>
                   );
@@ -196,12 +192,12 @@ export default function Recap() {
             )}
           </div>
 
-          <div className="hud-card p-5 lg:col-span-2 print:border print:border-black">
+          <div className="hud-card p-5 print:border print:border-black">
             <h2 className="font-heading text-xl font-black uppercase mb-4 flex items-center gap-2"><Flame className="w-5 h-5 text-[#FF4655]" /> Champion Trends</h2>
             {data.champion_trends.length === 0 ? (
               <div className="text-slate-500 text-sm">No champion picks in period.</div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {data.champion_trends.map((c) => (
                   <div key={c.champion} className="flex items-center gap-2 p-2 bg-[#121828]/60 border border-[#1B2438] rounded" data-testid={`recap-trend-${c.champion}`}>
                     <ChampionPortrait name={c.champion} role={c.role} size={32} />
