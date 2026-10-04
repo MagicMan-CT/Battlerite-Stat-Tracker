@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/AuthContext";
-import { DataCacheProvider } from "@/DataCacheContext";
 import Layout from "@/components/Layout";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
@@ -34,26 +33,24 @@ function Protected({ children, adminOnly }) {
 function App() {
   return (
     <AuthProvider>
-      <DataCacheProvider>
-        <BrowserRouter>
-          <Toaster theme="dark" richColors position="top-right" />
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<Protected><Dashboard /></Protected>} />
-            <Route path="/matches" element={<Protected><Matches /></Protected>} />
-            <Route path="/log" element={<Protected adminOnly><LogMatch /></Protected>} />
-            <Route path="/leaderboard" element={<Protected><Leaderboard /></Protected>} />
-            <Route path="/players" element={<Protected><Players /></Protected>} />
-            <Route path="/players/:id" element={<Protected><PlayerProfile /></Protected>} />
-            <Route path="/matrix" element={<Protected><Matrix /></Protected>} />
-            <Route path="/champions" element={<Protected><ChampionMatrix /></Protected>} />
-            <Route path="/champions/:name" element={<Protected><ChampionProfile /></Protected>} />
-            <Route path="/matchmaking" element={<Protected><Matchmaking /></Protected>} />
-            <Route path="/recap" element={<Protected><Recap /></Protected>} />
-            <Route path="/seasons" element={<Protected><Seasons /></Protected>} />
-          </Routes>
-        </BrowserRouter>
-      </DataCacheProvider>
+      <BrowserRouter>
+        <Toaster theme="dark" richColors position="top-right" />
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/" element={<Protected><Dashboard /></Protected>} />
+          <Route path="/matches" element={<Protected><Matches /></Protected>} />
+          <Route path="/log" element={<Protected adminOnly><LogMatch /></Protected>} />
+          <Route path="/leaderboard" element={<Protected><Leaderboard /></Protected>} />
+          <Route path="/players" element={<Protected><Players /></Protected>} />
+          <Route path="/players/:id" element={<Protected><PlayerProfile /></Protected>} />
+          <Route path="/matrix" element={<Protected><Matrix /></Protected>} />
+          <Route path="/champions" element={<Protected><ChampionMatrix /></Protected>} />
+          <Route path="/champions/:name" element={<Protected><ChampionProfile /></Protected>} />
+          <Route path="/matchmaking" element={<Protected><Matchmaking /></Protected>} />
+          <Route path="/recap" element={<Protected><Recap /></Protected>} />
+          <Route path="/seasons" element={<Protected><Seasons /></Protected>} />
+        </Routes>
+      </BrowserRouter>
     </AuthProvider>
   );
 }

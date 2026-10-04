@@ -997,12 +997,54 @@ async def recap(days: int = 7, season_id: Optional[str] = None):
 
     trending = sorted(champ_trend.values(), key=lambda x: (-x["picks"], -x["winrate"]))
 
+    # Rivalries: head-to-head records between pairs of players who faced each other
+    rivalries_agg = {}  # frozenset({pid_a, pid_b}) -> {matches, wins_by_pid}
+    for m in matches:
+        team_a_ids = [p["player_id"] for p in m["players"] if p["team"] == "A"]
+        team_b_ids = [p["player_id"] for p in m["players"] if p["team"] == "B"]
+        won_a = m["team_a_rounds"] > m["team_b_rounds"]
+        for aid in team_a_ids:
+            for bid in team_b_ids:
+                key = frozenset((aid, bid))
+                if key not in rivalries_agg:
+                    rivalries_agg[key] = {"ids": (aid, bid), "matches": 0, "wins": {aid: 0, bid: 0}}
+                r = rivalries_agg[key]
+                r["matches"] += 1
+                winner = aid if won_a else bid
+                r["wins"][winner] = r["wins"].get(winner, 0) + 1
+
+    rivalries = []
+    for key, r in rivalries_agg.items():
+        if r["matches"] < 2:
+            continue  # a rivalry needs at least two meetings
+        pid_a, pid_b = r["ids"]
+        a_wins = r["wins"].get(pid_a, 0)
+        b_wins = r["wins"].get(pid_b, 0)
+        total = r["matches"]
+        wr_a = a_wins / total if total else 0.5
+        # Heat score: more matches + closer to 50/50 split => hotter rivalry
+        closeness = 1.0 - abs(0.5 - wr_a) * 2  # 0..1 (1 at perfectly even)
+        heat = total * (0.5 + closeness / 2)
+        rivalries.append({
+            "player_a_id": pid_a,
+            "player_a_name": all_players.get(pid_a, "Unknown"),
+            "player_b_id": pid_b,
+            "player_b_name": all_players.get(pid_b, "Unknown"),
+            "matches": total,
+            "a_wins": a_wins,
+            "b_wins": b_wins,
+            "a_winrate": round(wr_a * 100, 1),
+            "heat_score": round(heat, 2),
+        })
+    rivalries.sort(key=lambda x: (-x["heat_score"], -x["matches"]))
+
     return {
         "period_days": days,
         "total_matches": len(matches),
         "top_climbers": climbers_list[:10],
         "biggest_upsets": upsets[:5],
         "champion_trends": trending[:12],
+        "rivalries": rivalries[:5],
     }
 
 

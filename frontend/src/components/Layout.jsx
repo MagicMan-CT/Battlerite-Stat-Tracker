@@ -1,7 +1,6 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/AuthContext";
 import { Swords, Trophy, Users, Grid3x3, Sliders, Calendar, LayoutDashboard, PlusCircle, LogOut, Flame, FileBarChart2, Eye } from "lucide-react";
-import NavPreview from "@/components/NavPreview";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, testid: "nav-dashboard" },
@@ -63,23 +62,22 @@ export default function Layout({ children }) {
         <nav className="border-t border-[#1B2438]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex gap-1 overflow-x-auto">
             {visibleLinks.map((l) => (
-              <NavPreview key={l.to} to={l.to} label={l.label}>
-                <NavLink
-                  to={l.to}
-                  end={l.to === "/"}
-                  data-testid={l.testid}
-                  className={({ isActive }) =>
-                    `flex items-center gap-2 px-4 py-3 text-xs font-mono-hud uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors ${
-                      isActive
-                        ? "text-cyan-400 border-cyan-400"
-                        : "text-slate-400 border-transparent hover:text-slate-100"
-                    }`
-                  }
-                >
-                  <l.icon className="w-3.5 h-3.5" />
-                  {l.label}
-                </NavLink>
-              </NavPreview>
+              <NavLink
+                key={l.to}
+                to={l.to}
+                end={l.to === "/"}
+                data-testid={l.testid}
+                className={({ isActive }) =>
+                  `flex items-center gap-2 px-4 py-3 text-xs font-mono-hud uppercase tracking-wider whitespace-nowrap border-b-2 transition-colors ${
+                    isActive
+                      ? "text-cyan-400 border-cyan-400"
+                      : "text-slate-400 border-transparent hover:text-slate-100"
+                  }`
+                }
+              >
+                <l.icon className="w-3.5 h-3.5" />
+                {l.label}
+              </NavLink>
             ))}
           </div>
         </nav>
