@@ -241,7 +241,7 @@ export default function NavPreview({ to, label, children }) {
         align="start"
         sideOffset={6}
         className="w-64 bg-[#0C101B] border-[#1B2438] text-slate-100 p-3"
-        data-testid={`nav-preview-${to.replace(/\W+/g, "")}`}
+        data-testid={`nav-preview-${to === "/" ? "dashboard" : to.replace(/^\/+/, "").replace(/\W+/g, "-")}`}
       >
         <div className="flex items-center justify-between mb-2">
           <div className="font-heading text-sm font-black uppercase tracking-tight text-cyan-400">{label}</div>
