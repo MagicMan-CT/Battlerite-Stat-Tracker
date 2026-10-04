@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "@/api";
 import { Grid3x3, Flame } from "lucide-react";
 import ChampionPortrait from "@/components/ChampionPortrait";
@@ -64,9 +65,14 @@ export default function ChampionMatrix() {
             <h3 className="font-heading text-lg font-bold uppercase mb-3 flex items-center gap-2"><Flame className="w-4 h-4 text-[#FFB800]" /> Champion Roster & Winrates</h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
               {data.totals.map((c) => (
-                <div key={c.champion} className={`flex items-center justify-between p-2 bg-[#121828]/60 border rounded ${c.picks === 0 ? "border-[#1B2438] opacity-60" : "border-[#1B2438]"}`} data-testid={`cm-total-${c.champion}`}>
+                <Link
+                  key={c.champion}
+                  to={`/champions/${encodeURIComponent(c.champion)}`}
+                  className={`flex items-center justify-between p-2 bg-[#121828]/60 border rounded hover:border-cyan-400/50 transition-colors ${c.picks === 0 ? "border-[#1B2438] opacity-60" : "border-[#1B2438]"}`}
+                  data-testid={`cm-total-${c.champion}`}
+                >
                   <div className="flex items-center gap-2 min-w-0">
-                    <ChampionPortrait name={c.champion} role={c.role} size={28} />
+                    <ChampionPortrait name={c.champion} role={c.role} size={28} disableHover />
                     <span className="font-medium text-sm truncate">{c.champion}</span>
                   </div>
                   <div className="text-right flex-shrink-0 ml-2">
@@ -79,7 +85,7 @@ export default function ChampionMatrix() {
                       </>
                     )}
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

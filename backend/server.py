@@ -1006,6 +1006,92 @@ async def recap(days: int = 7, season_id: Optional[str] = None):
     }
 
 
+@api_router.get("/stats/champion/{name}")
+async def champion_stats(name: str, season_id: Optional[str] = None):
+    """Champion profile: winrates, which players piloted them, teammates & opponents."""
+    champ = await db.champions.find_one({"name": name}, {"_id": 0})
+    if not champ:
+        raise HTTPException(404, "Champion not found")
+
+    q = {"players.champion": name}
+    if season_id:
+        q["season_id"] = season_id
+    matches = await db.matches.find(q, {"_id": 0}).sort("played_at", -1).to_list(10000)
+
+    all_players = {p["id"]: p["name"] for p in await db.players.find({}, {"_id": 0}).to_list(1000)}
+    role_by_name = {c["name"]: c["role"] for c in await db.champions.find({}, {"_id": 0}).to_list(1000)}
+
+    total_picks = 0
+    total_wins = 0
+    players_agg = {}       # player_id -> {name, matches, wins}
+    teammates_agg = {}     # champion -> {matches, wins}
+    opponents_agg = {}     # champion -> {matches, wins}
+    role_wins = 0
+    pick_history = []      # (played_at, winner_bool)
+
+    for m in matches:
+        won_a = m["team_a_rounds"] > m["team_b_rounds"]
+        for p in m["players"]:
+            if p["champion"] != name:
+                continue
+            total_picks += 1
+            won = (p["team"] == "A" and won_a) or (p["team"] == "B" and not won_a)
+            if won:
+                total_wins += 1
+                role_wins += 1
+
+            # per-player breakdown
+            pid = p["player_id"]
+            if pid not in players_agg:
+                players_agg[pid] = {
+                    "player_id": pid,
+                    "name": all_players.get(pid, "Unknown"),
+                    "matches": 0, "wins": 0,
+                }
+            players_agg[pid]["matches"] += 1
+            if won:
+                players_agg[pid]["wins"] += 1
+
+            # teammate & opponent champion aggregation
+            for other in m["players"]:
+                if other["player_id"] == pid and other["champion"] == name:
+                    continue
+                target = teammates_agg if other["team"] == p["team"] else opponents_agg
+                oc = other["champion"]
+                if oc not in target:
+                    target[oc] = {
+                        "champion": oc,
+                        "role": role_by_name.get(oc, other.get("role", "")),
+                        "matches": 0, "wins": 0,
+                    }
+                target[oc]["matches"] += 1
+                if won:
+                    target[oc]["wins"] += 1
+
+            pick_history.append({"played_at": m["played_at"], "won": won, "match_id": m["id"]})
+
+    def _finalize(d):
+        d["winrate"] = round(d["wins"] / d["matches"] * 100, 1) if d["matches"] else 0
+        return d
+
+    players_list = sorted((_finalize(v) for v in players_agg.values()), key=lambda x: -x["matches"])
+    teammates_list = sorted((_finalize(v) for v in teammates_agg.values()), key=lambda x: -x["matches"])
+    opponents_list = sorted((_finalize(v) for v in opponents_agg.values()), key=lambda x: -x["matches"])
+
+    return {
+        "champion": champ["name"],
+        "role": champ["role"],
+        "total_picks": total_picks,
+        "total_wins": total_wins,
+        "total_losses": total_picks - total_wins,
+        "winrate": round(total_wins / total_picks * 100, 1) if total_picks else 0,
+        "players": players_list,
+        "teammate_champions": teammates_list,
+        "opponent_champions": opponents_list,
+        "recent_matches": matches[:10],
+    }
+
+
 # --------- Matchmaking ---------
 class MatchmakingRequest(BaseModel):
     player_ids: List[str]
@@ -1022,7 +1108,7 @@ def role_synergy_score(roles: List[str]) -> float:
 
 
 @api_router.post("/matchmaking/balance")
-async def matchmaking(data: MatchmakingRequest, user: dict = Depends(get_current_user)):
+async def matchmaking(data: MatchmakingRequest):
     team_size = {"2v2": 2, "3v3": 3}[data.format]
     if len(data.player_ids) != team_size * 2:
         raise HTTPException(400, f"Need exactly {team_size * 2} players for {data.format}")
