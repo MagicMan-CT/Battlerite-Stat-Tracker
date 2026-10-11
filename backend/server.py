@@ -31,6 +31,9 @@ api_router = APIRouter(prefix="/api")
 JWT_ALGORITHM = "HS256"
 K_FACTOR = 24
 BASE_MMR = 1200
+PLACEMENT_MATCHES = 10            # first N matches of the season (per player)
+PLACEMENT_WIN_MULTIPLIER = 2.0    # placement wins earn 2x MMR
+CARRY_WIN_MULTIPLIER = 1.15       # +15% when carrying a sub-average teammate
 
 CHAMPIONS = [
     # Melee
@@ -170,18 +173,30 @@ def compute_elo_delta(team_a_mmr: float, team_b_mmr: float,
 
 
 def compute_player_deltas(team_a_mmrs: dict, team_b_mmrs: dict,
-                          team_a_rounds: int, team_b_rounds: int) -> dict:
-    """Compute per-player ELO deltas, preserving zero-sum across the match.
+                          team_a_rounds: int, team_b_rounds: int,
+                          placement_counts: dict = None) -> dict:
+    """Compute per-player ELO deltas.
 
     Within the winning team the weaker player gains a larger share (bigger upset for them),
-    within the losing team the stronger player loses a larger share. Returns
-    {player_id: delta} for every player in both teams.
+    within the losing team the stronger player loses a larger share.
+
+    Bonuses applied to winners only (break strict zero-sum):
+    - Placement bonus: if player has played < PLACEMENT_MATCHES this season (before this match),
+      the win is multiplied by PLACEMENT_WIN_MULTIPLIER.
+    - Carry bonus: if a winning player's MMR exceeds the enemy average AND at least one of
+      their teammates has an MMR below the enemy average, their gain is multiplied by
+      CARRY_WIN_MULTIPLIER.
+
+    Returns {player_id: {"delta": float, "placement_bonus": bool, "carry_bonus": bool}}.
     """
     out = {}
     if not team_a_mmrs or not team_b_mmrs:
         return out
     if team_a_rounds == team_b_rounds:
-        return {pid: 0.0 for pid in list(team_a_mmrs) + list(team_b_mmrs)}
+        return {pid: {"delta": 0.0, "placement_bonus": False, "carry_bonus": False}
+                for pid in list(team_a_mmrs) + list(team_b_mmrs)}
+
+    placement_counts = placement_counts or {}
 
     avg_a = sum(team_a_mmrs.values()) / len(team_a_mmrs)
     avg_b = sum(team_b_mmrs.values()) / len(team_b_mmrs)
@@ -190,7 +205,6 @@ def compute_player_deltas(team_a_mmrs: dict, team_b_mmrs: dict,
     max_rounds = max(team_a_rounds, team_b_rounds)
     multiplier = 1.0 + (round_diff / max_rounds if max_rounds else 0)
 
-    # Scale by team size so each PLAYER gets a full K-sized adjustment (not team_size-divided)
     team_size = len(team_a_mmrs)
     team_delta_a = K_FACTOR * ((1.0 if a_won else 0.0) - expected_score(avg_a, avg_b)) * multiplier * team_size
 
@@ -202,8 +216,29 @@ def compute_player_deltas(team_a_mmrs: dict, team_b_mmrs: dict,
         total = sum(weights.values()) or 1.0
         return {pid: team_delta * (w / total) for pid, w in weights.items()}
 
-    out.update(distribute(team_delta_a, team_a_mmrs, avg_b, a_won))
-    out.update(distribute(-team_delta_a, team_b_mmrs, avg_a, not a_won))
+    base_a = distribute(team_delta_a, team_a_mmrs, avg_b, a_won)
+    base_b = distribute(-team_delta_a, team_b_mmrs, avg_a, not a_won)
+
+    def finalize(base: dict, team_mmrs: dict, opp_avg: float, won: bool) -> dict:
+        has_weak_mate = any(mmr < opp_avg for mmr in team_mmrs.values())
+        result = {}
+        for pid, delta in base.items():
+            placement_bonus = False
+            carry_bonus = False
+            if won and delta > 0:
+                if placement_counts.get(pid, 0) < PLACEMENT_MATCHES:
+                    delta *= PLACEMENT_WIN_MULTIPLIER
+                    placement_bonus = True
+                if has_weak_mate and team_mmrs[pid] > opp_avg:
+                    other_mmrs = [m for pid2, m in team_mmrs.items() if pid2 != pid]
+                    if any(m < opp_avg for m in other_mmrs):
+                        delta *= CARRY_WIN_MULTIPLIER
+                        carry_bonus = True
+            result[pid] = {"delta": delta, "placement_bonus": placement_bonus, "carry_bonus": carry_bonus}
+        return result
+
+    out.update(finalize(base_a, team_a_mmrs, avg_b, a_won))
+    out.update(finalize(base_b, team_b_mmrs, avg_a, not a_won))
     return out
 
 
@@ -438,6 +473,7 @@ async def recompute_season_elo(season_id: str):
     """Recompute elo_delta for every match in a season in chronological order."""
     matches = await db.matches.find({"season_id": season_id}).sort("played_at", 1).to_list(10000)
     player_mmr = {}
+    player_match_count = {}  # pid -> matches played in this season before current
     for m in matches:
         team_a = [p for p in m["players"] if p["team"] == "A"]
         team_b = [p for p in m["players"] if p["team"] == "B"]
@@ -445,12 +481,23 @@ async def recompute_season_elo(season_id: str):
             continue
         ta_mmrs = {p["player_id"]: player_mmr.get(p["player_id"], BASE_MMR) for p in team_a}
         tb_mmrs = {p["player_id"]: player_mmr.get(p["player_id"], BASE_MMR) for p in team_b}
-        deltas = compute_player_deltas(ta_mmrs, tb_mmrs, m["team_a_rounds"], m["team_b_rounds"])
+        placement_counts = {p["player_id"]: player_match_count.get(p["player_id"], 0)
+                             for p in m["players"]}
+        deltas = compute_player_deltas(ta_mmrs, tb_mmrs,
+                                       m["team_a_rounds"], m["team_b_rounds"],
+                                       placement_counts=placement_counts)
         new_players = []
         for p in m["players"]:
-            d = deltas.get(p["player_id"], 0.0)
-            new_players.append({**p, "elo_delta": round(d, 2)})
+            info = deltas.get(p["player_id"], {"delta": 0.0, "placement_bonus": False, "carry_bonus": False})
+            d = info["delta"]
+            new_players.append({
+                **p,
+                "elo_delta": round(d, 2),
+                "placement_bonus": info["placement_bonus"],
+                "carry_bonus": info["carry_bonus"],
+            })
             player_mmr[p["player_id"]] = player_mmr.get(p["player_id"], BASE_MMR) + d
+            player_match_count[p["player_id"]] = player_match_count.get(p["player_id"], 0) + 1
         ta_avg = sum(ta_mmrs.values()) / len(ta_mmrs)
         tb_avg = sum(tb_mmrs.values()) / len(tb_mmrs)
         await db.matches.update_one({"id": m["id"]}, {"$set": {
@@ -510,22 +557,33 @@ async def create_match(data: MatchCreate, user: dict = Depends(admin_required)):
     team_a_ids = [p.player_id for p in team_a]
     team_b_ids = [p.player_id for p in team_b]
 
-    # Compute per-player deltas (preserves zero-sum across the match)
+    # Compute per-player deltas (placement + carry bonuses applied for winners)
     ta_mmrs = {pid: await get_player_mmr(pid, data.season_id) for pid in team_a_ids}
     tb_mmrs = {pid: await get_player_mmr(pid, data.season_id) for pid in team_b_ids}
     team_a_mmr = sum(ta_mmrs.values()) / len(ta_mmrs)
     team_b_mmr = sum(tb_mmrs.values()) / len(tb_mmrs)
-    deltas = compute_player_deltas(ta_mmrs, tb_mmrs, data.team_a_rounds, data.team_b_rounds)
+
+    # Count matches each player has already played in this season (for placement bonus).
+    placement_counts = {}
+    for pid in team_a_ids + team_b_ids:
+        placement_counts[pid] = await db.matches.count_documents({
+            "season_id": data.season_id,
+            "players.player_id": pid,
+        })
+    deltas = compute_player_deltas(ta_mmrs, tb_mmrs, data.team_a_rounds, data.team_b_rounds,
+                                   placement_counts=placement_counts)
 
     players_with_delta = []
     for p in data.players:
-        d = deltas.get(p.player_id, 0.0)
+        info = deltas.get(p.player_id, {"delta": 0.0, "placement_bonus": False, "carry_bonus": False})
         players_with_delta.append({
             "player_id": p.player_id,
             "champion": p.champion,
             "role": p.role,
             "team": p.team,
-            "elo_delta": round(d, 2),
+            "elo_delta": round(info["delta"], 2),
+            "placement_bonus": info["placement_bonus"],
+            "carry_bonus": info["carry_bonus"],
         })
 
     doc = {
