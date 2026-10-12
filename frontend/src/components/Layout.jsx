@@ -1,11 +1,12 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "@/AuthContext";
-import { Swords, Trophy, Users, Grid3x3, Sliders, Calendar, LayoutDashboard, PlusCircle, LogOut, Flame, FileBarChart2, Eye } from "lucide-react";
+import { Swords, Trophy, Users, Grid3x3, Sliders, Calendar, LayoutDashboard, PlusCircle, LogOut, Flame, FileBarChart2, Eye, Inbox } from "lucide-react";
 
 const links = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, testid: "nav-dashboard" },
   { to: "/matches", label: "Matches", icon: Swords, testid: "nav-matches" },
   { to: "/log", label: "Log Match", icon: PlusCircle, testid: "nav-log", adminOnly: true },
+  { to: "/pending", label: "Pending", icon: Inbox, testid: "nav-pending", adminOnly: true },
   { to: "/leaderboard", label: "Leaderboard", icon: Trophy, testid: "nav-leaderboard" },
   { to: "/players", label: "Players", icon: Users, testid: "nav-players" },
   { to: "/matrix", label: "PvP Matrix", icon: Grid3x3, testid: "nav-matrix" },
@@ -26,11 +27,9 @@ export default function Layout({ children }) {
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-[#06080E]/80 border-b border-[#1B2438]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center" style={{ clipPath: "polygon(15% 0, 100% 0, 85% 100%, 0 100%)" }}>
-              <Swords className="w-4 h-4 text-black" strokeWidth={3} />
-            </div>
+            <img src="/logo.png" alt="BR Stats" className="w-8 h-8 object-contain" />
             <div>
-              <div className="font-heading text-lg font-black uppercase tracking-tight leading-none">Arena<span className="text-cyan-400">.OPS</span></div>
+              <div className="font-heading text-lg font-black uppercase tracking-tight leading-none">BR <span className="text-cyan-400">Stats</span></div>
               <div className="text-[10px] font-mono-hud text-slate-500 uppercase tracking-[0.2em] leading-none mt-0.5">Battlerite Tracker</div>
             </div>
           </div>

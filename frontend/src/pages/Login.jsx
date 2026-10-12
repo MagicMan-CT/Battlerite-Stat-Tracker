@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/AuthContext";
-import { Swords, Zap, Eye } from "lucide-react";
+import { Zap, Eye } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Login() {
@@ -38,11 +38,9 @@ export default function Login() {
 
       <div className="hud-card hud-corner w-full max-w-md p-8 relative z-10 scanlines">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-12 h-12 bg-gradient-to-br from-cyan-400 to-cyan-600 flex items-center justify-center" style={{ clipPath: "polygon(15% 0, 100% 0, 85% 100%, 0 100%)" }}>
-            <Swords className="w-6 h-6 text-black" strokeWidth={3} />
-          </div>
+          <img src="/logo.png" alt="BR Stats" className="w-12 h-12 object-contain" />
           <div>
-            <div className="font-heading text-2xl font-black uppercase tracking-tight leading-none">Arena<span className="text-cyan-400">.OPS</span></div>
+            <div className="font-heading text-2xl font-black uppercase tracking-tight leading-none">BR <span className="text-cyan-400">Stats</span></div>
             <div className="text-[10px] font-mono-hud text-slate-500 uppercase tracking-[0.2em] leading-none mt-1">Access Terminal</div>
           </div>
         </div>
