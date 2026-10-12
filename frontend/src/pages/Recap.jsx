@@ -51,7 +51,7 @@ export default function Recap() {
       </div>
 
       <div className="hidden print:block mb-4">
-        <h1 className="text-3xl font-black uppercase text-black">Arena.OPS · {days}-Day Recap</h1>
+        <h1 className="text-3xl font-black uppercase text-black">BR Stats · {days}-Day Recap</h1>
       </div>
 
       {!data ? (
